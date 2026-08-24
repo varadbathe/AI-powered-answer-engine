@@ -1,5 +1,7 @@
 import 'package:ai_answer_engine/theme/colors.dart';
+import 'package:ai_answer_engine/widget/side_bar_buttons.dart';
 import 'package:flutter/material.dart';
+
 
 class SideBar extends StatefulWidget {
   const SideBar({super.key});
@@ -10,56 +12,76 @@ class SideBar extends StatefulWidget {
 
 class _SideBarState extends State<SideBar> {
   bool isCollapsed = true;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: isCollapsed ? 64 : 128, // here the logic of width is controlled.
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 100),
+      width: isCollapsed ? 64 : 150,
       color: AppColors.sideNav,
       child: Column(
         children: [
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Icon(
             Icons.auto_awesome_mosaic,
             color: AppColors.whiteColor,
-            size: 30,
+            size: isCollapsed ? 30 : 60,
           ),
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 14),
-            child: Icon(Icons.add, color: AppColors.iconGrey, size: 22),
-          ),
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 14),
-            child: Icon(Icons.search, color: AppColors.iconGrey, size: 22),
-          ),
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 14),
-            child: Icon(Icons.language, color: AppColors.iconGrey, size: 22),
-          ),
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 14),
-            child: Icon(
-              Icons.cloud_outlined,
-              color: AppColors.iconGrey,
-              size: 22,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: isCollapsed
+                  ? CrossAxisAlignment.center
+                  : CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 24),
+                SideBarButton(
+                  isCollapsed: isCollapsed,
+                  icon: Icons.add,
+                  text: "Home",
+                ),
+                SideBarButton(
+                  isCollapsed: isCollapsed,
+                  icon: Icons.search,
+                  text: "Search",
+                ),
+                SideBarButton(
+                  isCollapsed: isCollapsed,
+                  icon: Icons.language,
+                  text: "Spaces",
+                ),
+                SideBarButton(
+                  isCollapsed: isCollapsed,
+                  icon: Icons.auto_awesome,
+                  text: "Discover",
+                ),
+                SideBarButton(
+                  isCollapsed: isCollapsed,
+                  icon: Icons.cloud_outlined,
+                  text: "Library",
+                ),
+                const Spacer(),
+              ],
             ),
           ),
-          Spacer(),
           GestureDetector(
             onTap: () {
               setState(() {
-                isCollapsed = !isCollapsed; // toggles the logic
+                isCollapsed = !isCollapsed;
               });
             },
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 100),
               margin: EdgeInsets.symmetric(vertical: 14),
               child: Icon(
-                Icons.keyboard_arrow_right,
+                isCollapsed
+                    ? Icons.keyboard_arrow_right
+                    : Icons.keyboard_arrow_left,
                 color: AppColors.iconGrey,
                 size: 22,
               ),
             ),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 16),
         ],
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:ai_answer_engine/pages/home_page.dart';
 import 'package:ai_answer_engine/theme/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,12 +15,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        scaffoldBackgroundColor: AppColors.background, 
-            /*
-            scaffoldBackgroundColor specifies what scaffold background
-             should look like through out the application
-            */
+        scaffoldBackgroundColor: AppColors.background,
+        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
       ),
+
       home: HomePage(),
     );
   }

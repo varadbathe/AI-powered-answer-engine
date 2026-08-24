@@ -20,22 +20,25 @@ class SideBarButton extends StatelessWidget {
           isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
       children: [
         Container(
-          margin: EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+          margin: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
           child: Icon(
             icon,
             color: AppColors.iconGrey,
             size: 22,
           ),
         ),
-        isCollapsed
-            ? const SizedBox()
-            : Text(
-                text,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              )
+        if (!isCollapsed)
+          Expanded(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
       ],
     );
   }

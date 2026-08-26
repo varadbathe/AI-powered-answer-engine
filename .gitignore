@@ -43,5 +43,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
 # Widget Preview related
 .widget_preview/
+
+# Environment variables & secrets
+.env
+.env.*
+*.env
+!.env.example
+!*.env.example
+
+# Python & Virtual Environments
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/

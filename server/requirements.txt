@@ -1,0 +1,9 @@
+fastapi
+fastapi-cli
+uvicorn
+pydantic
+pydantic-settings
+python-dotenv
+sentence-transformers
+tavily-python
+trafilatura

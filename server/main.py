@@ -13,18 +13,18 @@ sort_source_service = SortSourceService()
 # chat
 @app.post("/chat")
 def chat_endpoint(body: ChatBody):
-
+    print(f"\n--- New Request: '{body.query}' ---")
     search_results = search_service.web_search(body.query)
     # here by using the search service we are searching the web for the query entered by the user and returning the results found in it.
-    
-
-    
     
     # sort the sources
     sorted_results = sort_source_service.sort_sources(body.query, search_results)
     
-    
+    print(f"Found {len(sorted_results)} relevant sources:")
+    for idx, res in enumerate(sorted_results, 1):
+        score = res.get('score', 0)
+        print(f"  {idx}. [Relevance: {score:.4f}] {res.get('title')} -> {res.get('url')}")
+
     # generate the response using the LLM
-    
 
     return body.query

@@ -31,6 +31,11 @@ class SearchService:
             content = trafilatura.extract(
                 downloaded, include_comments=False
             )  # Extract the content from the downloaded URL using trafilatura
+            
+            # If trafilatura fails to extract content, fallback to Tavily snippet
+            if not content:
+                content = result.get("content") or ""
+
             results.append(
                 {
                     "title": result.get("title", ""),

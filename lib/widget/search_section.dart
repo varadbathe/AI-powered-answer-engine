@@ -1,3 +1,5 @@
+import 'package:ai_answer_engine/pages/chat_page.dart';
+import 'package:ai_answer_engine/services/chat_web_services.dart';
 import 'package:ai_answer_engine/theme/colors.dart';
 import 'package:ai_answer_engine/widget/search_bar_button.dart';
 import 'package:flutter/material.dart';
@@ -77,16 +79,27 @@ class _SearchSectionState extends State<SearchSection> {
                       text: 'Attach',
                     ),
                     const Spacer(),
-                    Container(
-                      padding: EdgeInsets.all(9),
-                      decoration: BoxDecoration(
-                        color: AppColors.submitButton,
-                        borderRadius: BorderRadius.circular(40),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_forward,
-                        color: AppColors.background,
-                        size: 16,
+                    GestureDetector(
+                      onTap: () {
+                        ChatWebService().chat(queryController.text.trim());
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ChatPage(question: queryController.text.trim()),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(9),
+                        decoration: BoxDecoration(
+                          color: AppColors.submitButton,
+                          borderRadius: BorderRadius.circular(40),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward,
+                          color: AppColors.background,
+                          size: 16,
+                        ),
                       ),
                     )
                   ],

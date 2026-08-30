@@ -1,27 +1,40 @@
-import 'package:ai_answer_engine/widget/side_bar.dart';
-import 'package:flutter/material.dart';
-import 'package:ai_answer_engine/widget/search_section.dart';
+import 'package:ai_answer_engine/services/chat_web_services.dart';
 import 'package:ai_answer_engine/theme/colors.dart';
+import 'package:ai_answer_engine/widget/search_section.dart';
+import 'package:ai_answer_engine/widget/side_bar.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
-
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    ChatWebService().connect();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Row(
-        children: [
-          const SideBar(),
-          Expanded(
+        body: Row(
+      children: [
+        kIsWeb ? SideBar() : SizedBox(),
+        Expanded(
+          child: Padding(
+            padding: !kIsWeb ? const EdgeInsets.all(8.0) : EdgeInsets.zero,
             child: Column(
               children: [
-                const Expanded(
+                Expanded(
                   child: SearchSection(),
                 ),
-
-                //footer
-                 Container(
+                // footer
+                Container(
                   padding: EdgeInsets.symmetric(vertical: 16),
                   child: Wrap(
                     alignment: WrapAlignment.center,
@@ -88,12 +101,12 @@ class HomePage extends StatelessWidget {
                       )
                     ],
                   ),
-                 ),
+                )
               ],
             ),
           ),
-        ],
-      ),
-    );
+        )
+      ],
+    ));
   }
 }

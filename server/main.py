@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic_models.chat_body import ChatBody
+from services.llm_service import LLMService
 from services.search_service import SearchService
 from services.sort_source_service import SortSourceService
 
@@ -8,6 +9,7 @@ app = FastAPI()
 # instantiate the search service
 search_service = SearchService()
 sort_source_service = SortSourceService()
+llm_service = LLMService()
 
 
 # chat
@@ -20,11 +22,8 @@ def chat_endpoint(body: ChatBody):
     # sort the sources
     sorted_results = sort_source_service.sort_sources(body.query, search_results)
     
-    print(f"Found {len(sorted_results)} relevant sources:")
-    for idx, res in enumerate(sorted_results, 1):
-        score = res.get('score', 0)
-        print(f"  {idx}. [Relevance: {score:.4f}] {res.get('title')} -> {res.get('url')}")
+    response = llm_service.generate_response(body.query, sorted_results)
+    print(f"\n--- Generated Response ---\n{response}\n--------------------------\n")
+    
+    return response
 
-    # generate the response using the LLM
-
-    return body.query

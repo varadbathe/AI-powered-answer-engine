@@ -1,5 +1,7 @@
 import 'package:ai_answer_engine/theme/colors.dart';
+import 'package:ai_answer_engine/widget/answer_section.dart';
 import 'package:ai_answer_engine/widget/side_bar.dart';
+import 'package:ai_answer_engine/widget/sources_section.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -31,7 +33,10 @@ class ChatPage extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                   
+                    SizedBox(height: 24),
+                    SourcesSection(),
+                    SizedBox(height: 24),
+                    AnswerSection(),
                   ],
                 ),
               ),

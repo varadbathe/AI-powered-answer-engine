@@ -1,0 +1,62 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome",
+      "program": "lib/main.dart",
+      "console": "debugConsole",
+      "internalConsoleOptions": "openOnSessionStart"
+    },
+    {
+      "name": "Flutter (Windows Desktop)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "windows",
+      "program": "lib/main.dart",
+      "console": "debugConsole",
+      "internalConsoleOptions": "openOnSessionStart"
+    },
+    {
+      "name": "Flutter (Default Device)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "console": "debugConsole",
+      "internalConsoleOptions": "openOnSessionStart"
+    },
+    {
+      "name": "Python Backend (FastAPI)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "main:app",
+        "--reload",
+        "--port",
+        "8000"
+      ],
+      "cwd": "${workspaceFolder}/server",
+      "console": "internalConsole",
+      "internalConsoleOptions": "openOnSessionStart"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack (Backend + Chrome)",
+      "configurations": [
+        "Python Backend (FastAPI)",
+        "Flutter (Chrome)"
+      ]
+    },
+    {
+      "name": "Full Stack (Backend + Windows Desktop)",
+      "configurations": [
+        "Python Backend (FastAPI)",
+        "Flutter (Windows Desktop)"
+      ]
+    }
+  ]
+}

@@ -1,10 +1,10 @@
 import 'package:ai_answer_engine/pages/chat_page.dart';
 import 'package:ai_answer_engine/services/chat_web_services.dart';
 import 'package:ai_answer_engine/theme/colors.dart';
+import 'package:ai_answer_engine/utils/app_logger.dart';
 import 'package:ai_answer_engine/widget/search_bar_button.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 
 class SearchSection extends StatefulWidget {
   const SearchSection({super.key});
@@ -18,8 +18,23 @@ class _SearchSectionState extends State<SearchSection> {
 
   @override
   void dispose() {
-    super.dispose();
     queryController.dispose();
+    super.dispose();
+  }
+
+  void _submitSearch() {
+    final query = queryController.text.trim();
+    if (query.isEmpty) {
+      AppLogger.warn('Attempted to search with empty query', tag: 'UI');
+      return;
+    }
+    AppLogger.info('User submitted search: "$query"', tag: 'UI');
+    ChatWebService().chat(query);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ChatPage(question: query),
+      ),
+    );
   }
 
   @override
@@ -53,6 +68,7 @@ class _SearchSectionState extends State<SearchSection> {
                 padding: const EdgeInsets.all(16.0),
                 child: TextField(
                   controller: queryController,
+                  onSubmitted: (_) => _submitSearch(),
                   decoration: InputDecoration(
                     hintText: 'Search anything...',
                     hintStyle: TextStyle(
@@ -80,17 +96,9 @@ class _SearchSectionState extends State<SearchSection> {
                     ),
                     const Spacer(),
                     GestureDetector(
-                      onTap: () {
-                        ChatWebService().chat(queryController.text.trim());
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ChatPage(question: queryController.text.trim()),
-                          ),
-                        );
-                      },
+                      onTap: _submitSearch,
                       child: Container(
-                        padding: EdgeInsets.all(9),
+                        padding: const EdgeInsets.all(9),
                         decoration: BoxDecoration(
                           color: AppColors.submitButton,
                           borderRadius: BorderRadius.circular(40),

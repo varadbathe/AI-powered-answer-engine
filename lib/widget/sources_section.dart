@@ -1,11 +1,19 @@
+import 'dart:async';
 import 'package:ai_answer_engine/services/chat_web_services.dart';
 import 'package:ai_answer_engine/theme/colors.dart';
+import 'package:ai_answer_engine/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-
 class SourcesSection extends StatefulWidget {
-  const SourcesSection({super.key});
+  final List? sources;
+  final bool? isLoading;
+
+  const SourcesSection({
+    super.key,
+    this.sources,
+    this.isLoading,
+  });
 
   @override
   State<SourcesSection> createState() => _SourcesSectionState();
@@ -13,97 +21,268 @@ class SourcesSection extends StatefulWidget {
 
 class _SourcesSectionState extends State<SourcesSection> {
   bool isLoading = true;
+  StreamSubscription? _subscription;
   List searchResults = [
     {
-      'title': 'Ind vs Aus Live Score 4th Test',
-      'url':
-          'https://www.moneycontrol.com/sports/cricket/ind-vs-aus-live-score-4th-test-shubman-gill-dropped-australia-win-toss-opt-to-bat-liveblog-12897631.html',
+      'title': 'Loading source 1...',
+      'url': 'https://example.com/source1',
     },
     {
-      'title': 'Ind vs Aus Live Boxing Day Test',
-      'url':
-          'https://timesofindia.indiatimes.com/sports/cricket/india-vs-australia-live-score-boxing-day-test-2024-ind-vs-aus-4th-test-day-1-live-streaming-online/liveblog/116663401.cms',
+      'title': 'Loading source 2...',
+      'url': 'https://example.com/source2',
     },
     {
-      'title': 'Ind vs Aus - 4 Australian Batters Score Half Centuries',
-      'url':
-          'https://economictimes.indiatimes.com/news/sports/ind-vs-aus-four-australian-batters-score-half-centuries-in-boxing-day-test-jasprit-bumrah-leads-indias-fightback/articleshow/116674365.cms',
+      'title': 'Loading source 3...',
+      'url': 'https://example.com/source3',
     },
   ];
 
   @override
   void initState() {
     super.initState();
-    ChatWebService().searchResultStream.listen((data) {
-      setState(() {
-        searchResults = data['data'];
-        isLoading = false;
-      });
-    });
+    if (widget.sources != null) {
+      searchResults = widget.sources!;
+      isLoading = widget.isLoading ?? false;
+      return;
+    }
+
+    _subscription = ChatWebService().searchResultStream.listen(
+      (data) {
+        AppLogger.info(
+          'SourcesSection updated with ${(data['data'] as List?)?.length ?? 0} sources',
+          tag: 'UI',
+        );
+        if (mounted) {
+          setState(() {
+            searchResults = data['data'] ?? [];
+            isLoading = false;
+          });
+        }
+      },
+      onError: (error) {
+        AppLogger.error('SourcesSection stream error: $error', tag: 'UI');
+      },
+    );
   }
 
   @override
+  void didUpdateWidget(covariant SourcesSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.sources != null) {
+      setState(() {
+        searchResults = widget.sources!;
+        isLoading = widget.isLoading ?? false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+
+  @override
   Widget build(BuildContext context) {
+    final displayLoading = widget.isLoading ?? isLoading;
+    final displayResults = widget.sources ?? searchResults;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(
-              Icons.source_outlined,
-              color: Colors.white70,
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.submitButton.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.auto_stories_outlined,
+                color: AppColors.submitButton,
+                size: 16,
+              ),
             ),
-            SizedBox(width: 8),
-            Text(
+            const SizedBox(width: 10),
+            const Text(
               "Sources",
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.2,
               ),
-            )
+            ),
+            if (!displayLoading && displayResults.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.cardHover,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.cardBorder),
+                ),
+                child: Text(
+                  '${displayResults.length}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         Skeletonizer(
-          enabled: isLoading,
-          child: Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: searchResults.map((res) {
-              return Container(
-                width: 150,
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.cardColor,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      res['title'],
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      res['url'],
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
+          enabled: displayLoading,
+          effect: const PulseEffect(
+            from: AppColors.cardColor,
+            to: Color(0xFF2E3235),
+            duration: Duration(milliseconds: 1400),
           ),
-        )
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              for (int i = 0; i < displayResults.length; i++)
+                _SourceCard(
+                  result: displayResults[i],
+                  index: i + 1,
+                  isLoading: displayLoading,
+                ),
+            ],
+          ),
+        ),
       ],
+    );
+  }
+}
+
+class _SourceCard extends StatefulWidget {
+  final dynamic result;
+  final int index;
+  final bool isLoading;
+
+  const _SourceCard({
+    required this.result,
+    required this.index,
+    required this.isLoading,
+  });
+
+  @override
+  State<_SourceCard> createState() => _SourceCardState();
+}
+
+class _SourceCardState extends State<_SourceCard> {
+  bool _isHovered = false;
+
+  String _extractDomain(String rawUrl) {
+    try {
+      final uri = Uri.parse(rawUrl);
+      var host = uri.host;
+      if (host.startsWith('www.')) host = host.substring(4);
+      return host.isNotEmpty ? host : rawUrl;
+    } catch (_) {
+      return rawUrl;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = widget.result['title']?.toString() ?? 'Source';
+    final url = widget.result['url']?.toString() ?? '';
+    final domain = _extractDomain(url);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: widget.isLoading ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 185,
+        height: 92,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _isHovered ? AppColors.cardHover : AppColors.cardColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: _isHovered
+                ? AppColors.submitButton.withValues(alpha: 0.55)
+                : AppColors.cardBorder,
+            width: 1,
+          ),
+          boxShadow: _isHovered
+              ? [
+                  BoxShadow(
+                    color: AppColors.submitButton.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Top row: domain and index badge
+            Row(
+              children: [
+                const Icon(
+                  Icons.public_rounded,
+                  size: 12,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    domain,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBorder,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '${widget.index}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.textGrey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            // Bottom title
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12.5,
+                height: 1.3,
+                color: _isHovered ? AppColors.whiteColor : AppColors.textPrimary,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

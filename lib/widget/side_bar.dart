@@ -18,15 +18,32 @@ class _SideBarState extends State<SideBar> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 100),
       width: isCollapsed ? 64 : 150,
-      color: AppColors.sideNav,
+      decoration: const BoxDecoration(
+        color: AppColors.sideNav,
+        border: Border(
+          right: BorderSide(
+            color: AppColors.sideNavBorder,
+            width: 1,
+          ),
+        ),
+      ),
       child: Column(
         children: [
-          const SizedBox(height: 16),
-          Icon(
-            Icons.auto_awesome_mosaic,
-            color: AppColors.whiteColor,
-            size: isCollapsed ? 30 : 60,
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.cardColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.cardBorder),
+            ),
+            child: Icon(
+              Icons.auto_awesome_mosaic_rounded,
+              color: AppColors.submitButton,
+              size: isCollapsed ? 22 : 28,
+            ),
           ),
+
           Expanded(
             child: Column(
               crossAxisAlignment: isCollapsed

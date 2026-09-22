@@ -1,6 +1,7 @@
 {
   "python.defaultInterpreterPath": "${workspaceFolder}/server/venv/Scripts/python.exe",
   "python.analysis.extraPaths": [
-    "${workspaceFolder}/server"
+    "${workspaceFolder}/server",
+    "${workspaceFolder}/server/venv/Lib/site-packages"
   ]
 }

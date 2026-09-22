@@ -51,7 +51,7 @@ Standalone Search Query:"""
 
         return query
 
-    def generate_response(self, query: str, search_results: list[dict], history: list[dict] = None):
+    def generate_response(self, query: str, search_results: list[dict], history: list[dict] | None = None):
         # Format sources
         context = "\n\n".join(
             [

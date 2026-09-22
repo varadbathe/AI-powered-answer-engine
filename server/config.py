@@ -1,12 +1,14 @@
+from pathlib import Path
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
 load_dotenv()
 
+BASE_DIR = Path(__file__).resolve().parent
+
 class Settings(BaseSettings): 
-    # here we have extended the BaseSettings class from pydantic_settings 
-    # to create a Settings class that will be used to access the TAVILY_API_KEY 
-    # from the .env file.
+    # Settings class used to access configuration from environment or defaults
     TAVILY_API_KEY: str = "your_tavily_api_key"
     GEMINI_API_KEY: str = "your_gemini_api_key"
+    DATABASE_PATH: str = str(BASE_DIR / "conversations.db")
    

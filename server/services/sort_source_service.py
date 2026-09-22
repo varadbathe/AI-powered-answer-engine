@@ -18,7 +18,7 @@ class SortSourceService:
             # Filter valid docs
             valid_docs = [
                 res for res in search_results
-                if res.get('content') and isinstance(res.get('content'), str) and res.get('content').strip()
+                if isinstance(res.get('content'), str) and bool(res['content'].strip())
             ]
             if not valid_docs:
                 return search_results

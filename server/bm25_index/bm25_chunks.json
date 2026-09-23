@@ -1,0 +1,522 @@
+[
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_0",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 0,
+    "page_number": 1,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_1",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 1 of 17 \n \n \n \n \n \nV E D I K A H E A L T H \nGrievance Window \nImplementation Specification \n \n \n \n \nVersion 1.0 · April 2026 \nPlatform: Flutter (mobile) + React/TypeScript (web) \nScope: User module · Master Admin module · Backend APIs"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_1",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 1,
+    "page_number": 2,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_2",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 2 of 17 \nTable of Contents"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_2",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 2,
+    "page_number": 3,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_3",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 3 of 17 \n1. Overview \nThe Grievance Window is a dedicated module within Vedika Health that provides a structured, \ntrackable channel for users to raise complaints, share feedback, and report issues. It replaces \nad-hoc communication (phone, email) with a formal system that ensures accountability, \ntransparency, and measurable resolution timelines. Module Goals \nEnable patients, doctors, and vendors to submit structured grievances with supporting evidence."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_3",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 3,
+    "page_number": 3,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_4",
+    "text": "Module Goals \nEnable patients, doctors, and vendors to submit structured grievances with supporting evidence. Give the Master Admin full visibility, triage capability, and a response workflow. Generate metrics (volume, resolution time, category breakdown) to drive quality improvements. Trigger real-time notifications to both parties on every status change."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_4",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 4,
+    "page_number": 3,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_5",
+    "text": "Trigger real-time notifications to both parties on every status change. Scope \nThis document covers the end-to-end implementation of the Grievance Window across all three \nplatforms: \n• vedika-health-app — Flutter mobile application (patient-facing) \n• vedika-health-web — React / TypeScript web application (patient + admin) \n• Backend REST API — to be implemented alongside the frontend modules \n \nOut of Scope (v1.0) \n• Third-party ombudsman integration \n• Automated resolution via AI triage (planned v2.0) \n• Grievance analytics dashboard with charts (planned v2.0)"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_5",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 5,
+    "page_number": 4,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_6",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 4 of 17 \n2. User Flows \n2.1 Patient / User Flow \nThe following steps describe the complete journey a patient takes from discovering the \ngrievance feature to tracking its resolution. # Step Detail \n1 Navigate to Grievances Accessible via bottom navigation bar (mobile) or left sidebar \n(web). Visible to all verified users. 2 Grievance list screen Displays all previous grievances as cards with GRV-ID, title, \ncategory, date, and colour-coded status badge."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_6",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 6,
+    "page_number": 4,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_7",
+    "text": "3 Tap 'Raise New \nGrievance' \nOpens the new grievance form. Button is prominent and \nalways visible. 4 Complete the form \nUser selects category, enters title and description (minimum \n50 characters), optionally links an appointment/clinic, sets \npriority, and attaches up to 5 files. 5 Submit System creates the grievance with status PENDING. A push \nnotification and in-app alert confirm submission. 6 Track progress \nUser views the detail screen to see the full conversation \nthread, status history, and admin replies. Reply box is disabled \nonce status is CLOSED."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_7",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 7,
+    "page_number": 4,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_8",
+    "text": "Key Screens (User) • Grievance List Screen — card layout, status badges (red = pending, orange = under review, green = resolved), pull-to-refresh, pagination • New Grievance Form — category dropdown, title field, description textarea, related-to auto-suggest, file picker (max 5 files, image/PDF only), priority chip selector • Grievance Detail Screen — chronological message thread (user messages left, admin replies right), status history timeline, add-reply box 2.2 Master Admin Flow The Master Admin accesses the grievance module from the admin dashboard and manages the complete lifecycle of"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_8",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 8,
+    "page_number": 4,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_9",
+    "text": "every grievance raised across the platform."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_9",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 9,
+    "page_number": 4,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_10",
+    "text": "# Step Detail"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_10",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 10,
+    "page_number": 5,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_11",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 5 of 17 \n1 Dashboard overview KPI cards show total grievances, pending count, resolved \ntoday, and average resolution time. 2 Grievances table Paginated, searchable table with columns: GRV-ID, user \nname, category, priority, status, date raised, and action button. 3 Apply filters Filter by status, date range, category, user type, and priority. Search by GRV-ID or user name."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_11",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 11,
+    "page_number": 5,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_12",
+    "text": "3 Apply filters Filter by status, date range, category, user type, and priority. Search by GRV-ID or user name. 4 Open detail view \nClicking any row opens a full detail modal: left panel shows \nuser info, grievance content, and attachments; right panel \ncontains admin actions. 5 Mark 'Under Review' One-click action immediately updates status and sends push \nnotification to the user. 6 Add reply \nAdmin types a response which appends to the shared \nconversation thread. Internal remarks field is only visible to \nadmins. 7 Resolve / Close Resolve sets resolutionDate and resolvedBy."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_12",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 12,
+    "page_number": 5,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_13",
+    "text": "Internal remarks field is only visible to \nadmins. 7 Resolve / Close Resolve sets resolutionDate and resolvedBy. Close prevents \nfurther replies. Both trigger a notification to the user. Key Screens (Admin) \n• Grievance Dashboard — KPI summary cards, HIGH priority alert list, recent activity feed \n• All Grievances Table — searchable, filterable, paginated; sortable by priority and date \n• Grievance Detail Modal — two-panel layout: content + attachments (left), admin reply box \n+ status controls + resolve button (right)"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_13",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 13,
+    "page_number": 6,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_14",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 6 of 17 \n3. Status Lifecycle & Priority \n3.1 Status Values \nEach grievance progresses through a defined sequence of statuses. Transitions are one-\ndirectional with the exception that UNDER_REVIEW can be reopened to PENDING if additional \ninformation is needed. PENDING Newly submitted. No admin action taken yet. UNDER_REVIEW Admin has acknowledged and is investigating. RESOLVED Issue addressed. Resolution date logged. CLOSED Finalised. No further replies accepted."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_14",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 14,
+    "page_number": 6,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_15",
+    "text": "RESOLVED Issue addressed. Resolution date logged. CLOSED Finalised. No further replies accepted. 3.2 Priority Levels \nPriority is set by the user at submission time and can be overridden by the admin. It determines \nsort order in the admin table and drives SLA targets. HIGH Doctor behaviour, billing disputes, safety complaints. Target SLA: < 4 hours. MEDIUM General appointment issues, consultation quality. Target SLA: < 24 hours. LOW Technical glitches, suggestions, minor inconveniences. Target SLA: < 72 hours."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_15",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 15,
+    "page_number": 7,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_16",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 7 of 17 \n4. Data Model \n4.1 Table: grievances \nAll fields below map to columns in the primary grievances table. UUID is used as the primary \nkey for all cross-service references."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_16",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 16,
+    "page_number": 7,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_17",
+    "text": "UUID is used as the primary \nkey for all cross-service references. Field Type Description / Values Required Default \nid UUID Primary key, auto-generated Yes auto \ngrievanceId String Human-readable ID, format: GRV-\nYYYYMMDD-NNN Yes auto \nuserId String FK referencing the submitting user Yes — \nuserType Enum PATIENT | DOCTOR | VENDOR Yes — \ntitle String Short summary of the grievance (max 120 \nchars) Yes — \ndescription Text Full complaint text."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_17",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 17,
+    "page_number": 7,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_18",
+    "text": "Enforced minimum: 50 \nchars client-side Yes — \ncategory Enum See Section 4.2 for allowed values Yes — \nsubCategory String Optional free-text sub-topic No null \nrelatedToType Enum APPOINTMENT | CLINIC | DOCTOR | \nAPP | OTHER No null \nrelatedToId String FK to the related entity (appointment ID, \nclinic ID, etc.) No null \nattachments Array<URL> Storage URLs of uploaded files."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_18",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 18,
+    "page_number": 7,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_19",
+    "text": "Max 5 \nper grievance No [] \nstatus Enum PENDING | UNDER_REVIEW | \nRESOLVED | CLOSED Yes PENDING \npriority Enum LOW | MEDIUM | HIGH Yes MEDIUM \nadminRemarks Text Internal notes — never returned in user-\nfacing API responses No null \nresponses JSONB[] Thread array: { timestamp, message, \nbyAdmin, authorId } No [] \nresolvedBy String Admin user ID — set when status \ntransitions to RESOLVED No null \nresolutionDate Timestamp Auto-set when status transitions to \nRESOLVED No null \ncreatedAt Timestamp Auto-set on INSERT Yes auto"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_19",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 19,
+    "page_number": 8,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_20",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 8 of 17 \nField Type Description / Values Required Default \nupdatedAt Timestamp Auto-updated on every change Yes auto \n \n4.2 Category Enum Values \nThe following categories are available for selection at submission time. This list is returned by \nthe GET /api/grievances/categories endpoint and should be populated dynamically in all \ndropdowns."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_20",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 20,
+    "page_number": 8,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_21",
+    "text": "• Appointment Related \n• Billing / Payment Issue \n• Doctor Behaviour \n• Clinic Facility / Hygiene \n• Consultation Quality \n• Technical / App Issue \n• Refund Request \n• Others \n \n4.3 Response Thread Schema \nEach entry in the responses array follows this structure: \n \nField Type Description \ntimestamp Timestamp UTC timestamp of when the reply was submitted \nmessage Text The reply content \nbyAdmin Boolean true if authored by an admin user, false if by the patient \nauthorId String User ID or Admin ID of the author"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_21",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 21,
+    "page_number": 9,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_22",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 9 of 17 \n5. API Specification \nAll endpoints use JSON (application/json) unless noted as multipart. All user endpoints require a \nvalid Bearer token. Admin endpoints additionally require the MASTER_ADMIN role checked \nserver-side. 5.1 User APIs \nAvailable to authenticated patients, doctors, and vendors. Each user sees only their own \ngrievances."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_22",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 22,
+    "page_number": 9,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_23",
+    "text": "5.1 User APIs \nAvailable to authenticated patients, doctors, and vendors. Each user sees only their own \ngrievances. Method Endpoint Description \nPOST /api/grievances Create a new grievance (multipart: JSON fields + \nfile attachments) \nGET /api/grievances List the current user's grievances."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_23",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 23,
+    "page_number": 9,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_24",
+    "text": "Query params: \npage, limit, status, category \nGET /api/grievances/:id Get full detail of a single grievance including the \nresponse thread \nGET /api/grievances/categories Return the list of category enum values for \ndropdown population \n \nPOST /api/grievances — Request Body \nSubmitted as multipart/form-data to support file attachments alongside JSON fields. Field Type Notes \ntitle String Required. Max 120 characters. description String Required. Minimum 50 characters enforced server-side. category Enum Required. Must match a value from /api/grievances/categories. priority Enum Optional."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_24",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 24,
+    "page_number": 9,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_25",
+    "text": "category Enum Required. Must match a value from /api/grievances/categories. priority Enum Optional. LOW | MEDIUM | HIGH. Defaults to MEDIUM. relatedToType Enum Optional. APPOINTMENT | CLINIC | DOCTOR | APP | OTHER. relatedToId String Optional. Required if relatedToType is provided. attachments File[] Optional. Max 5 files. Accepted: image/png, image/jpeg, \napplication/pdf. Max 5 MB each. 5.2 Master Admin APIs"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_25",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 25,
+    "page_number": 10,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_26",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 10 of 17 \nAll endpoints below require the MASTER_ADMIN role. Attempts from non-admin tokens must \nreturn 403 Forbidden. Method Endpoint Description \nGET /api/admin/grievances \nList all grievances across all users."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_26",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 26,
+    "page_number": 10,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_27",
+    "text": "Supports filters: status, dateFrom, dateTo, category, userType, priority, search GET /api/admin/grievances/:id Full detail view including adminRemarks and full response thread PUT /api/admin/grievances/:id/status Update status and optionally add a reply to the thread in a single atomic call POST /api/admin/grievances/:id/reply Append a reply to the conversation thread without changing status GET /api/admin/grievances/stats KPI summary: total, pending, resolvedToday, avgResolutionHours, countByCategory PUT /api/admin/grievances/:id/status — Request Body Field Type Notes status Enum Required."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_27",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 27,
+    "page_number": 10,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_28",
+    "text": "New status value. Must be a valid forward transition. reply String Optional. If provided, appended to responses[] as a byAdmin: true \nentry. adminRemarks String Optional. Internal-only note. Never returned to users. 5.3 Notification Triggers \nThe notification service must fire on every status transition. Both push (FCM/APNs) and in-app \nnotifications are required. Event Notify Message \nGrievance submitted User (confirmation) Your grievance {GRV-ID} has been \nreceived."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_28",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 28,
+    "page_number": 10,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_29",
+    "text": "Event Notify Message \nGrievance submitted User (confirmation) Your grievance {GRV-ID} has been \nreceived. Grievance submitted Admins (new ticket) New {priority} grievance received: {title} \nStatus → \nUNDER_REVIEW User Your grievance {GRV-ID} is being \nreviewed."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_29",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 29,
+    "page_number": 11,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_30",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 11 of 17 \nAdmin reply added User Admin responded to your grievance {GRV-\nID}. \nStatus → RESOLVED User Your grievance {GRV-ID} has been \nresolved. \nStatus → CLOSED User Your grievance {GRV-ID} has been closed."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_30",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 30,
+    "page_number": 12,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_31",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 12 of 17 \n6."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_31",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 31,
+    "page_number": 12,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_32",
+    "text": "Frontend Design Specifications 6.1 User Side (App + Web) Grievance List Screen • Card layout — one card per grievance • Each card shows: GRV-ID, title (truncated at 60 chars), category tag, submission date, and status badge • Status badge colours: red (#E24B4A) = PENDING, orange (#EF9F27) = UNDER_REVIEW, green (#3B6D11) = RESOLVED, grey = CLOSED • Pull-to-refresh on mobile; infinite scroll or pagination (10 per page) on web • 'Raise New Grievance' floating action button (mobile) or header button (web) — always visible New Grievance Form • Category — required dropdown, values from GET"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_32",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 32,
+    "page_number": 12,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_33",
+    "text": "/api/grievances/categories • Title — text field, max 120 characters, character counter visible • Description — textarea, minimum 50 characters enforced on submit with inline error • Related to — optional auto-suggest field pre-populated with the user's recent appointments • File upload — native file picker, image/PNG, image/JPEG, PDF only, max 5 MB per file, max 5 files • Priority — chip selector (Low / Medium / High), default Medium • Submit button — large, full-width on mobile, disabled until required fields are valid Grievance Detail Screen • Chronological message thread: user messages"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_33",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 33,
+    "page_number": 12,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_34",
+    "text": "aligned left, admin replies aligned right with a blue left border accent • Each message shows: author label, timestamp, message text • Status change events appear as system messages in the thread (e.g."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_34",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 34,
+    "page_number": 12,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_35",
+    "text": "'Status changed to \nUNDER_REVIEW — 21 Apr 2026') \n• Reply text input + Send button visible at the bottom; hidden (not just disabled) when \nstatus = CLOSED \n \n6.2 Master Admin Side (Web) \nGrievance Dashboard \n• KPI summary cards in a 4-column row: Total, Pending, Resolved Today, Avg Resolution \nTime (hrs)"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_35",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 35,
+    "page_number": 13,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_36",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 Confidential — Internal Use Only Page 13 of 17 • Alert list below the cards: top 5 HIGH priority unresolved grievances with direct action links • Recent activity feed showing the last 10 status changes across all grievances All Grievances Table • Columns: GRV-ID, User Name, User Type, Category, Priority, Status, Date Raised, Action • Priority column renders colour-coded pills (same colours as status badges) • Filters: status (multi-select chips), date range picker, category dropdown, user type, priority, free-text search by"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_36",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 36,
+    "page_number": 13,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_37",
+    "text": "GRV-ID or user name • Default sort: priority (HIGH first), then date (oldest first) • Pagination: 20 rows per page Grievance Detail Modal • Full-screen overlay on desktop, bottom sheet on tablet • Left panel (60% width): user profile card (name, type, contact), grievance content, attachments as thumbnails, full conversation thread • Right panel (40% width): status dropdown, internal remarks textarea, reply text area with Send button, Resolve button (green), Close button (grey) • Resolving while leaving a reply in the text area should automatically append the reply before resolving (UX"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_37",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 37,
+    "page_number": 13,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_38",
+    "text": "shortcut)"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_38",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 38,
+    "page_number": 14,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_39",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 14 of 17 \n7. Implementation Plan \nImplementation follows a backend-first approach to unblock both frontend teams in parallel. Each phase has a defined checklist and acceptance criteria."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_39",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 39,
+    "page_number": 14,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_40",
+    "text": "Phase 1 — Backend (Week 1–2) ☐ Create Grievance model and run database migration ☐ Implement auto-generation of human-readable GRV-ID on INSERT ☐ Implement all 4 user-facing REST endpoints with proper auth middleware ☐ Implement all 5 admin REST endpoints with MASTER_ADMIN role guard ☐ Multipart file upload support (reuse clinic registration pattern); store to cloud storage ☐ Implement notification service triggers for all 6 events (Section 5.3) ☐ Write unit tests for status transition validation (reject invalid transitions server -side) ☐ API documentation (Swagger / Postman collection)"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_40",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 40,
+    "page_number": 14,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_41",
+    "text": "shared with frontend teams Phase 2 — User Frontend: Flutter App (Week 2–3) ☐ Add 'Grievances' tab to bottom navigation bar ☐ Implement Grievance List screen with card layout and status badges ☐ Implement pull-to-refresh and infinite scroll/pagination ☐ Implement New Grievance Form with all fields and client-side validation ☐ Implement file picker with type/size restrictions and preview ☐ Implement Grievance Detail screen with conversation thread ☐ Integrate all 4 user APIs ☐ Handle push notification deep links to the correct grievance detail screen Phase 3 — User Frontend: React Web (Week"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_41",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 41,
+    "page_number": 14,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_42",
+    "text": "2–3, parallel) ☐ Add 'Grievances' entry to the left sidebar with unread badge count ☐ Implement Grievance List page (mirrors Flutter screen, adapted for web layout)"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_42",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 42,
+    "page_number": 15,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_43",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 Confidential — Internal Use Only Page 15 of 17 ☐ Implement New Grievance Form as a page (not modal) for accessibility ☐ Implement Grievance Detail page with responsive thread layout ☐ Integrate all 4 user APIs ☐ In-app notification banner on status changes (WebSocket or polling fallback) Phase 4 — Admin Frontend: React Web (Week 3–4) ☐ Create Grievance Management section in admin panel navigation ☐ Implement Grievance Dashboard with KPI cards and HIGH priority alert list ☐ Implement All Grievances Table with filters, search,"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_43",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 43,
+    "page_number": 15,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_44",
+    "text": "and default sort ☐ Implement Grievance Detail Modal with two-panel layout ☐ Implement reply box, status dropdown, internal remarks, Resolve and Close buttons ☐ Integrate all 5 admin APIs Phase 5 — Testing & Polish (Week 4–5) ☐ End-to-end status transition flow testing (PENDING → UNDER_REVIEW → RESOLVED → CLOSED) ☐ Role-based access: verify non-admin tokens receive 403 on all /api/admin/* routes ☐ File upload: test type enforcement, size limits, and CDN URL storage ☐ Push notification delivery testing on iOS and Android ☐ Validate adminRemarks is never returned in user-facing API responses ☐"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_44",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 44,
+    "page_number": 15,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_45",
+    "text": "Accessibility review: form labels, keyboard navigation, screen reader support ☐ Performance: table pagination, list rendering with 500+ records ☐ Cross-browser testing: Chrome, Safari, Firefox, Edge"
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_45",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 45,
+    "page_number": 16,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_46",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 16 of 17 \n8. Validation Rules \nAll validation below is enforced both client-side (for UX) and server-side (for security). Client-\nside validation must never be the sole guard. Field Rule Error Message \ntitle Required, max 120 \nchars Title is required and must be under 120 characters. description Required, min 50 chars Please describe your grievance in at least 50 \ncharacters. category Required, must match \nenum Please select a valid category."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_46",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 46,
+    "page_number": 16,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_47",
+    "text": "category Required, must match \nenum Please select a valid category. relatedToId Required if \nrelatedToType set Please specify the related appointment or clinic. attachments Max 5 files, max 5 MB \neach \nYou can attach up to 5 files (images or PDFs), each \nup to 5 MB. attachments Type: image/png, \nimage/jpeg, pdf Only PNG, JPEG, and PDF files are accepted. status (PUT) Valid forward transition \nonly This status transition is not permitted."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_47",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 47,
+    "page_number": 17,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_48",
+    "text": "Vedika Health — Grievance Window Implementation Specification v1.0 \nConfidential — Internal Use Only Page 17 of 17 \n9. Next Steps & Prompts \nThe following ready-to-use prompts can be passed directly to Cursor, Antigravity, or any AI \ncoding assistant to generate implementation artefacts. Generate: Backend Model + Migration \nCreate the Grievances database model and migration based on the schema in Section 4, \nincluding indexes on userId, status, priority, and createdAt. Generate: All REST API Controllers \nImplement all 9 endpoints from Section 5 using the existing Vedika Health API patterns."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_48",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 48,
+    "page_number": 17,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_49",
+    "text": "Include \nrole-based middleware, multipart file handling, and notification triggers. Generate: Flutter Screens \nBuild the three Flutter screens (Grievance List, New Grievance Form, Grievance Detail) following \nthe design specs in Section 6.1. Use the existing design system and integrate the 4 user APIs. Generate: Admin React Components \nBuild the Grievance Dashboard, All Grievances Table, and Grievance Detail Modal in \nReact/TypeScript following Section 6.2. Integrate all 5 admin APIs."
+  },
+  {
+    "chunk_id": "e112fc8a-a874-4882-9030-151bb9757e16_chunk_49",
+    "document_id": "e112fc8a-a874-4882-9030-151bb9757e16",
+    "document_name": "Grievance_Window_Spec.pdf",
+    "chunk_index": 49,
+    "page_number": 17,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_50",
+    "text": "Integrate all 5 admin APIs. Document prepared by: Vedika Health Engineering | Last updated: April 2026 \nThis document is confidential and intended for internal use only."
+  },
+  {
+    "chunk_id": "3c574cd0-36ea-48d3-ac49-952b1674e53c_chunk_0",
+    "document_id": "3c574cd0-36ea-48d3-ac49-952b1674e53c",
+    "document_name": "Doctor Onboarding Checklist Editable.pdf",
+    "chunk_index": 0,
+    "page_number": 1,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_1",
+    "text": "Category Required Details & Documents\n1. Personal Info Full Name, Gender, Email, Mobile Number, Profile Photo\n2. Professional Details Category\nYears of Experience\nQualifications (MBBS/MD/etc.)\nSpecialization\nLanguages\n3. Medical Registration Medical Registration Certificate\n License Number\nCouncil Name\nReg. Date\n4. Educational \nDocuments [UPLOAD] Medical Degree Certificate\n5. Identity Verification [UPLOAD] Aadhaar Card / PAN Card / Passport / Driving \nLicense\n6. Consultation Details Type (Online/Offline), Days, Consultation Fees, Follow-up \nFees\n7."
+  },
+  {
+    "chunk_id": "3c574cd0-36ea-48d3-ac49-952b1674e53c_chunk_1",
+    "document_id": "3c574cd0-36ea-48d3-ac49-952b1674e53c",
+    "document_name": "Doctor Onboarding Checklist Editable.pdf",
+    "chunk_index": 1,
+    "page_number": 1,
+    "section_title": null,
+    "evidence_id": "DOC_CHUNK_2",
+    "text": "Consultation Details Type (Online/Offline), Days, Consultation Fees, Follow-up \nFees\n7. Clinic & Establishment Clinic Name, Type, [UPLOAD] Clinic Registration Certificate / \nLicense\nEstablishment proof\n8. Clinic Address & \nPhotos Full Address, Pincode, Landmark, Floor\n[UPLOAD] Interior & Exterior Photos\n9. Additional Information Description / About Doctor or Clinic"
+  }
+]

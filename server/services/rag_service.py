@@ -13,9 +13,15 @@ class RagService:
     grounded prompt formulation, citation resolution, and RAG debug payload creation.
     """
 
-    def __init__(self, retriever: BaseRetriever, debug_mode: bool = False):
+    def __init__(
+        self,
+        retriever: BaseRetriever,
+        debug_mode: bool = False,
+        relevance_threshold: float = 0.0,
+    ):
         self.retriever = retriever
         self.debug_mode = debug_mode or settings.RAG_DEBUG
+        self.relevance_threshold = relevance_threshold
 
     def retrieve(
         self,
@@ -25,12 +31,17 @@ class RagService:
     ) -> List[RetrievedChunk]:
         """
         Retrieves top-k relevant document chunks using the injected BaseRetriever.
+        Applies relevance_threshold if configured.
         """
-        return self.retriever.retrieve(
+        chunks = self.retriever.retrieve(
             query=query,
             top_k=top_k,
             document_ids=document_ids,
         )
+        if self.relevance_threshold > 0.0:
+            chunks = [c for c in chunks if c.relevance_score >= self.relevance_threshold]
+        return chunks
+
 
     def build_context(
         self,
@@ -139,6 +150,9 @@ class RagService:
         self,
         chunks: List[RetrievedChunk],
         final_context_prompt: str,
+        query: Optional[str] = None,
+        retrieval_mode: Optional[str] = None,
+        candidates: Optional[List[Dict[str, Any]]] = None,
     ) -> Optional[RagDebugInfo]:
         """
         Builds development-only debug payload. Returns None if debug mode is disabled.
@@ -146,10 +160,28 @@ class RagService:
         if not self.debug_mode:
             return None
 
+        # Resolve candidate inspection items
+        debug_candidates = candidates
+        if debug_candidates is None and hasattr(self.retriever, "last_debug_candidates"):
+            debug_candidates = getattr(self.retriever, "last_debug_candidates", [])
+
+        mode = retrieval_mode or "hybrid"
+        retriever_class = self.retriever.__class__.__name__.lower()
+        if "vector" in retriever_class:
+            mode = "vector"
+        elif "bm25" in retriever_class:
+            mode = "bm25"
+        elif "hybrid" in retriever_class:
+            mode = "hybrid"
+
         return RagDebugInfo(
+            retrieval_mode=mode,
+            query=query,
+            candidates=debug_candidates,
             retrieved_chunks=[c.model_dump() for c in chunks],
             retrieval_scores=[c.relevance_score for c in chunks],
             document_ids=[c.document_id for c in chunks],
             page_numbers=[c.page_number for c in chunks],
             final_context_prompt=final_context_prompt,
         )
+

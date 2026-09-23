@@ -5,114 +5,115 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Google Gemini](https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
-[![Tavily](https://img.shields.io/badge/Tavily_Search-0A84FF?style=for-the-badge&logo=google-chrome&logoColor=white)](https://tavily.com/)
-[![Hugging Face](https://img.shields.io/badge/Sentence--Transformers-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
+[![ChromaDB](https://img.shields.io/badge/ChromaDB-FF6600?style=for-the-badge&logo=databricks&logoColor=white)](https://www.trychroma.com/)
+[![BM25](https://img.shields.io/badge/BM25_Lexical-007ACC?style=for-the-badge&logo=elastic&logoColor=white)](https://pypi.org/project/rank-bm25/)
+[![Sentence Transformers](https://img.shields.io/badge/Sentence--Transformers-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
+[![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![WebSockets](https://img.shields.io/badge/WebSockets-010101?style=for-the-badge&logo=socket.io&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
-A full-stack, real-time conversational search and generative research engine — **ResearchOS**. 
+**ResearchOS** is a full-stack, real-time conversational answer and generative research engine. It features dual operating modes:
 
-It integrates live web search, local semantic vector re-ranking, multi-turn query contextualization, streaming generative answers with multi-model fallback cascades, dynamic follow-up recommendations, and a dark-mode Flutter interface across Web, Desktop, and Mobile.
-
----
-
-## 🤖 AI Assistant & Bot Developer Guide (System Context)
-
-> [!NOTE]
-> **To AI Chatbots, LLMs, and Autonomous Coding Agents reading this repository:**
-> This section is your architectural index. Use this mental model to understand project conventions, state flows, invariant constraints, and component boundaries before proposing changes.
-
-### Core Architectural Paradigm
-- **Full-Stack Decoupling**: The project is split into a **Flutter Client** (`lib/`) and a **Python FastAPI Backend** (`server/`).
-- **Real-Time Communication**: Primary client-backend communication uses a persistent bidirectional **WebSocket connection** (`ws://localhost:8000/ws/chat`). An HTTP fallback endpoint (`POST /chat`) is also maintained.
-- **RAG & Agentic Web Search Flow**:
-  1. **User Query & History Ingestion**: Client submits the current prompt and past conversation turns (`[{"query": "...", "answer": "..."}]`).
-  2. **Conversational Contextualization**: If prior conversation history exists, `LLMService.contextualize_query()` uses Gemini to rewrite contextual references and pronouns (e.g., *"How old is he?"* &rarr; *"How old is Sundar Pichai?"*) into a self-contained search query.
-  3. **Live Web Retrieval**: `SearchService.web_search()` queries the **Tavily API** for up to 10 web sources containing raw titles, URLs, and text snippets.
-  4. **Local Vector Re-Ranking**: `SortSourceService.sort_sources()` encodes the query and source contents using `sentence-transformers` (`all-MiniLM-L6-v2`). Cosine similarity is computed via normalized vector dot products. Documents with similarity scores `<= 0.3` are pruned, and the remainder are sorted descending by relevance score.
-  5. **Streaming Source Cards**: Filtered sources are transmitted immediately to the client as a `search_results` JSON frame, allowing the UI to render source cards while synthesis begins.
-  6. **Grounded Answer Streaming**: `LLMService.generate_response()` streams synthesized markdown content token-by-token over WebSockets (`content` frames) with source citations.
-  7. **Stream Finalization & Follow-Ups**: Upon completion (`done` frame), `LLMService.generate_follow_ups()` prompts Gemini to generate 3 logical follow-up questions, emitted as a `follow_ups` JSON frame.
-
-### Key Invariants & Design Decisions
-1. **Frontend State & Streams**:
-   - `ChatWebService` is a singleton with `StreamController<Map<String, dynamic>>.broadcast()` streams (`searchResultStream`, `contentStream`, `followUpStream`). Broadcast streams prevent `Bad state: Stream has already been listened to` errors during screen transitions.
-   - `ChatPage` tracks multi-turn state via a list of `ChatTurn` objects. Each turn encapsulates its own question, sources, answer buffer, loading flags, and suggested follow-ups.
-2. **Backend Concurrency & Thread Offloading**:
-   - FastAPI handles WebSocket frames asynchronously. Blocking, CPU-heavy, or synchronous I/O operations (Tavily search, SentenceTransformer embedding calculation, Gemini API calls) are wrapped with `asyncio.to_thread(...)` to ensure the event loop remains unblocked.
-3. **Multi-Model LLM Cascade & Resilience**:
-   - `LLMService` utilizes a fallback cascade list: `["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"]`.
-   - If an upstream model is deprecated, throttled, or rate-limited, the service automatically logs a warning and attempts generation with the next model in the cascade before failing.
-4. **Normalized Vector Dot-Product**:
-   - Vectors are encoded with `normalize_embeddings=True`. Cosine similarity between the query and documents is calculated via `np.dot(doc_embeddings, query_embedding)`, eliminating manual vector norm divisions and maximizing CPU throughput.
-5. **Windows Terminal UTF-8 Safety**:
-   - `server/main.py` explicitly reconfigures `sys.stdout` and `sys.stderr` to UTF-8 on launch to prevent `UnicodeEncodeError` crashes on Windows when printing emoji characters or non-ASCII web text.
-6. **Centralized Frontend Logging**:
-   - The Flutter client uses `AppLogger` (`lib/utils/app_logger.dart`) with level-based logging (`debug`, `info`, `warn`, `error`), dual-routing to `dart:developer.log` (for VS Code Debug Console & DevTools) and `debugPrint` (for terminal and browser console).
+1. **🌐 Live Web Search Mode**: Live web grounding via Tavily, local semantic vector re-ranking (`all-MiniLM-L6-v2`), conversational query contextualization, streaming generative answers with multi-model fallback cascades, and automated follow-up suggestions.
+2. **📚 Document RAG & Hybrid Retrieval Engine (Phases 2 & 3)**: Full multi-format document management (`.pdf`, `.docx`, `.txt`, `.md`), SHA-256 duplicate detection, page/section-aware chunking, **dense semantic retrieval** (ChromaDB) fused with **lexical retrieval** (BM25 with technical term preservation), min-max score normalization, query-specific evidence grounding (`[DOC_CHUNK_X]`), and strict human-readable citation resolution (`[filename.pdf, p. 1]`).
+3. **💾 Persistent Conversations**: SQLite database maintaining threaded chat histories, auto-titling, renaming, and cascade deletions.
 
 ---
 
 ## 🌟 Key Features
 
-- ⚡ **Token-by-Token Streaming**: Low-latency WebSocket streaming delivers perceived instant response times.
-- 🌐 **Live Web Grounding**: Live search powered by Tavily Search API, providing real-time data beyond LLM training cutoff dates.
-- 🧬 **Local Semantic Vector Re-Ranking**: Edge-based sentence embedding scoring (`all-MiniLM-L6-v2`) eliminates noisy search snippets and ranks sources by relevance.
-- 🔄 **Multi-Turn Contextual Search**: Context-aware query rewriting preserves entity references and pronouns throughout continuous conversation threads.
-- 💡 **Dynamic Suggested Follow-Ups**: Automatically generates 3 relevant, clickable follow-up queries after each answer completion.
-- 🎨 **ResearchOS Dark UI**:
-  - Collapsible navigation sidebar
-  - Smooth shimmer loaders with `skeletonizer`
-  - Horizontal scrolling source citation cards displaying domain, title, and direct external links
-  - Full Markdown rendering with syntax highlighting, lists, and formatted tables
-  - Threaded multi-turn conversation layout
-- 🛡️ **Graceful Multi-Model Failover**: Cascades across Gemini models to maximize uptime under API constraints.
-- 🪵 **Centralized App Logging**: Unified, tagged logging across both client and server layers.
+### 1. Hybrid Retrieval Engine (Phase 3)
+* **Dense + Lexical Fusion**: Combines deep semantic similarity from SentenceTransformers + ChromaDB with exact keyword matching from BM25 (`rank-bm25`).
+* **Technical Term Preservation**: Custom tokenizer guarantees zero loss for hyphenated terms, alphanumeric symbols, and versioning: `CYP3A4`, `IL-6`, `B12`, `COVID-19`, `GPT-5.6`.
+* **Per-Query Min-Max Score Normalization**: Normalizes vector and BM25 scores to a standardized scale `[0.0, 1.0]` with division-by-zero protection.
+* **Weighted Score Fusion**: Configurable weighted ranking (`0.60 * norm_vector + 0.40 * norm_bm25`) with candidate pool deduplication.
+* **Candidate Pool Tracking**: Distinguishes unretrieved chunks (`retrieved: false`) from chunks with lowest relative scores.
+* **Deterministic Local Persistence**: BM25 chunks and metadata are stored in JSON (`bm25_index/bm25_chunks.json`) with atomic writes — zero dependency on Python `pickle`.
+* **Safe Reindexing Lifecycle**: Validates new document parsing, chunking, and embedding before replacing previous ChromaDB and BM25 indices.
+
+### 2. Document RAG Engine (Phase 2)
+* **Multi-Format Ingestion**: Ingests `.pdf`, `.docx`, `.txt`, and `.md` with automated metadata extraction (pages, section headings).
+* **SHA-256 Duplicate Detection**: Prevents redundant storage and re-indexing of identical documents.
+* **Document Isolation**: Queries can be filtered to specific documents or searched across the entire collection.
+* **Evidence Grounding & Citation Resolution**: Tags each retrieved chunk with an ephemeral turn evidence ID (`[DOC_CHUNK_1]`), instructing Gemini to cite specific claims, which the server resolves back to `[annual_report.pdf, p. 4]`.
+* **Grounded "No Relevant Context" Handling**: Strictly avoids hallucination and prevents silent fallback to web search when document information is insufficient.
+
+### 3. Agentic Live Web Search
+* **Real-Time Web Retrieval**: Powered by Tavily Search API.
+* **Local Semantic Re-Ranking**: Filters out noisy web snippets using cosine similarity computed via normalized vector dot products.
+* **Conversational Contextualization**: Rewrites multi-turn pronouns and implicit entity references into standalone queries using Gemini.
+* **Dynamic Follow-Ups**: Proposes 3 clickable follow-up research questions after each completion.
+
+### 4. Cross-Platform Flutter Client
+* Native support for **Web**, **Windows Desktop**, **macOS**, **Linux**, and **Mobile**.
+* Modern dark-mode interface with collapsible drawer navigation.
+* Interactive document manager modal (upload, preview, delete, reindex, select).
+* Skeleton shimmer loaders with `skeletonizer` and streaming Markdown rendering.
 
 ---
 
 ## 🏗️ End-to-End Architecture & Data Flow
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor User
-    participant Flutter as Flutter Frontend (Client)
-    participant WS as FastAPI WebSocket (/ws/chat)
-    participant LLM as Google Gemini (LLMService)
-    participant Tavily as Tavily Search Engine
-    participant ReRank as Sentence Transformers (Local)
-
-    User->>Flutter: Enters query or selects follow-up chip
-    Flutter->>WS: Sends JSON {"query": "...", "history": [...]}
-    
-    alt Follow-up Turn with Conversation History
-        WS->>LLM: Contextualize query with prior history
-        LLM-->>WS: Returns standalone search query
+flowchart TD
+    subgraph Client["Flutter Frontend Client"]
+        UI[Search & Chat UI]
+        DM[Document Management Dialog]
     end
 
-    WS->>Tavily: Search web for top results (max_results=10)
-    Tavily-->>WS: Returns raw search results (urls, titles, snippets)
-    
-    WS->>ReRank: Vector encode & compute cosine similarity (dot product)
-    ReRank-->>WS: Filtered & ranked sources (similarity > 0.3)
-    
-    WS-->>Flutter: {"type": "search_results", "data": [...]}
-    Note over Flutter: Renders source citation cards; ends shimmer skeleton
+    subgraph Backend["FastAPI Backend (server/)"]
+        Router[Chat Router: /ws/chat & /chat]
+        DocRouter[Document Router: /api/documents]
+        
+        subgraph ModeDetect{"Mode Detection"}
+            IsDoc{Documents Selected?}
+        end
 
-    WS->>LLM: Stream grounded answer with cited context
-    loop Token Streaming
-        LLM-->>WS: Content chunk
-        WS-->>Flutter: {"type": "content", "data": chunk}
-        Note over Flutter: Appends chunk to active ChatTurn & auto-scrolls
+        subgraph WebSearchEngine["Web Search Engine"]
+            Context[LLM Query Contextualizer]
+            Tavily[Tavily Web Search]
+            ReRank[SentenceTransformer Cosine Re-Ranker]
+        end
+
+        subgraph HybridRAG["Hybrid Retrieval Engine (Phase 3)"]
+            subgraph Retrievers["Parallel Candidate Retrieval"]
+                VecRet[VectorRetriever: ChromaDB Top 10]
+                BM25Ret[BM25Retriever: Lexical Top 10]
+            end
+            Norm[ScoreNormalizer: Min-Max]
+            Fusion["Weighted Fusion: 0.60 Vec + 0.40 BM25"]
+            Dedup[Deduplication & Top 5 Selection]
+        end
+
+        subgraph IngestionPipeline["Document Ingestion & Storage"]
+            Parser[DocumentParser: PDF, DOCX, TXT, MD]
+            Chunker[DocumentChunker: Page/Section Aware]
+            Embedder[EmbeddingService: all-MiniLM-L6-v2]
+            ChromaDB[(ChromaDB Persistent)]
+            BM25Store[(BM25 JSON Store)]
+            SQLite[(SQLite: conversations.db)]
+        end
+
+        subgraph LLMGeneration["Grounded Synthesis"]
+            LLM[Google Gemini Streaming]
+            CiteResolve[Citation & Evidence Resolver]
+        end
     end
 
-    WS-->>Flutter: {"type": "done"}
-    Note over Flutter: Marks turn streaming as complete; enables copy actions
+    UI -->|WebSocket JSON| Router
+    DM -->|REST API| DocRouter
+    DocRouter --> IngestionPipeline
+    Parser --> Chunker --> Embedder
+    Embedder --> ChromaDB & BM25Store
 
-    WS->>LLM: Generate 3 suggested follow-up questions
-    LLM-->>WS: JSON array of follow-up strings
-    WS-->>Flutter: {"type": "follow_ups", "data": [...]}
-    Note over Flutter: Renders clickable follow-up suggestion pills
+    Router --> ModeDetect
+    IsDoc -->|No: Web Search| Context --> Tavily --> ReRank --> LLM
+    IsDoc -->|Yes: Document RAG| VecRet & BM25Ret
+    VecRet --> Norm
+    BM25Ret --> Norm
+    Norm --> Fusion --> Dedup --> LLM
+
+    LLM --> CiteResolve -->|Stream Tokens + Citations| UI
 ```
 
 ---
@@ -122,323 +123,225 @@ sequenceDiagram
 ### Frontend (Flutter)
 | Technology | Package / Version | Role & Description |
 | :--- | :--- | :--- |
-| **Framework** | Flutter 3 (Dart SDK `^3.12.2`) | Cross-platform UI toolkit targeting Web, Desktop, and Mobile. |
-| **Networking** | `web_socket_client: ^0.2.1` | Low-level WebSocket client with automatic reconnection and state streams. |
-| **Markdown** | `flutter_markdown: ^0.7.7+1` | Rich Markdown rendering supporting code blocks, hyperlinks, and tables. |
-| **Shimmer UI** | `skeletonizer: ^2.1.3` | Bone-style skeleton loading placeholder during search and answer synthesis. |
-| **Typography** | `google_fonts: ^8.2.1` | Modern Google Fonts typography (`Inter`, `IBM Plex Mono`). |
-| **Logging** | Custom `AppLogger` | Tagged logging routing to `dart:developer` and standard debug output. |
+| **Framework** | Flutter 3 (Dart SDK `^3.12.2`) | Cross-platform client for Web, Windows Desktop, and Mobile. |
+| **Networking** | `web_socket_client: ^0.2.1` | Low-latency persistent WebSocket client with broadcast streams. |
+| **Markdown** | `flutter_markdown: ^0.7.7+1` | Rich Markdown rendering with code blocks, tables, and clickable links. |
+| **Shimmer UI** | `skeletonizer: ^2.1.3` | Bone-style skeleton placeholders during retrieval and synthesis. |
+| **Typography** | `google_fonts: ^8.2.1` | Typography using `Inter` and `IBM Plex Mono`. |
 
 ### Backend (Python)
 | Technology | Package | Role & Description |
 | :--- | :--- | :--- |
-| **Framework** | `fastapi`, `uvicorn`, `fastapi-cli` | High-performance asynchronous REST & WebSocket server. |
-| **LLM Engine** | `google-genai` | Official Google GenAI SDK for Gemini streaming and content generation. |
-| **Embeddings & ML** | `sentence-transformers`, `numpy` | Local dense embedding inference (`all-MiniLM-L6-v2`) for cosine re-ranking. |
-| **Web Search** | `tavily-python` | Search API optimized for LLMs, RAG applications, and source retrieval. |
-| **Web Scraping** | `trafilatura` | Robust HTML parsing, article text extraction, and boilerplate removal. |
-| **Configuration** | `pydantic`, `pydantic-settings`, `python-dotenv` | Type-safe environment variable validation and configuration loading. |
+| **Framework** | `fastapi`, `uvicorn`, `fastapi-cli` | Asynchronous REST & WebSocket server. |
+| **LLM Engine** | `google-genai` | Official Google GenAI SDK for Gemini streaming and generation. |
+| **Vector DB** | `chromadb` | Local persistent vector database with cosine distance space. |
+| **Lexical Engine** | `rank-bm25` | Local BM25Okapi scoring with non-negative Lucene IDF smoothing. |
+| **Embeddings & ML** | `sentence-transformers`, `numpy` | Local dense sentence embeddings (`all-MiniLM-L6-v2`). |
+| **Document Parsing**| `pypdf`, `python-docx` | Extraction from multi-page PDFs, Word documents, text, and markdown. |
+| **Database** | `sqlite3` | Local persistent storage for conversations, turns, and document metadata. |
+| **Web Search** | `tavily-python` | Search API optimized for LLMs and factual source retrieval. |
 
 ---
 
-## 📂 Repository Blueprint & Component Catalog
+## 📂 Repository Blueprint
 
 ```text
 ResearchOS/
-├── .vscode/
-│   └── launch.json                    # Pre-configured debug targets (Full Stack, Chrome, Windows, FastAPI)
-├── lib/                               # Flutter Frontend Client
-│   ├── main.dart                      # App bootstrap, dark theme configuration, and root routing
+├── lib/                               # Flutter Client
+│   ├── main.dart                      # Bootstrap & dark theme configuration
 │   ├── pages/
-│   │   ├── home_page.dart             # ResearchOS hero search view with side navigation
-│   │   └── chat_page.dart             # Multi-turn conversation thread manager and turn coordinator
+│   │   ├── home_page.dart             # Hero search view with sidebar navigation
+│   │   └── chat_page.dart             # Multi-turn conversation thread manager
 │   ├── services/
-│   │   └── chat_web_services.dart     # Singleton WebSocket service managing broadcast streams
+│   │   ├── chat_web_services.dart     # WebSocket service with broadcast controllers
+│   │   ├── conversation_service.dart  # REST client for conversation threads
+│   │   └── document_service.dart      # REST client for document uploads/management
 │   ├── theme/
-│   │   └── colors.dart                # Design system color tokens (AppColors)
-│   ├── utils/
-│   │   └── app_logger.dart            # Multi-level tagged logger (debug, info, warn, error)
+│   │   └── colors.dart                # AppColors design system tokens
 │   └── widget/
-│       ├── answer_section.dart        # Markdown renderer with token streaming and clipboard copy
-│       ├── follow_up_section.dart     # Clickable suggestion chips and follow-up query input box
-│       ├── search_bar_button.dart     # Focus & Attach action chips on home screen
-│       ├── search_section.dart        # Centered hero search input bar
-│       ├── side_bar.dart              # Collapsible navigation drawer
-│       ├── side_bar_buttons.dart      # Navigation icon and label buttons
-│       └── sources_section.dart       # Horizontal scrolling source citation cards
+│       ├── answer_section.dart        # Markdown renderer with token streaming & copy
+│       ├── document_management_dialog.dart # Ingestion, status tracking, selection modal
+│       ├── follow_up_section.dart     # Suggested questions and thread continuation
+│       ├── search_section.dart        # Main query input bar
+│       ├── side_bar.dart              # Collapsible conversation drawer
+│       └── sources_section.dart       # Horizontal citation cards
 ├── server/                            # Python Backend Server
-│   ├── .env.example                   # Environment variable template
-│   ├── config.py                      # Pydantic BaseSettings loading API keys
-│   ├── main.py                        # FastAPI application with /ws/chat and /chat endpoints
-│   ├── requirements.txt               # Pinned Python package dependencies
+│   ├── config.py                      # Pydantic BaseSettings & configuration
+│   ├── main.py                        # FastAPI app, service wiring & dependency injection
+│   ├── requirements.txt               # Pinned Python dependencies
+│   ├── bm25_index/                    # Deterministic local BM25 JSON storage
+│   ├── chroma_db/                     # Persistent ChromaDB vector index
+│   ├── uploads/                       # Stored uploaded files (.pdf, .docx, .txt, .md)
 │   ├── pydantic_models/
-│   │   └── chat_body.py               # Pydantic schema for ChatBody request validation
-│   └── services/
-│       ├── llm_service.py             # Gemini streaming, prompt templates, contextualization & follow-ups
-│       ├── search_service.py          # Tavily search client wrapper
-│       └── sort_source_service.py     # SentenceTransformers vector re-ranking and cosine scoring
-├── test/                              # Automated Unit & Widget Tests
-│   ├── follow_up_widget_test.dart     # Widget tests for FollowUpSection interaction
-│   └── widget_test.dart               # Baseline Flutter widget smoke test
-├── pubspec.yaml                       # Flutter project dependencies and metadata
-├── pyrightconfig.json                 # Python static type analysis configuration
-└── README.md                          # Comprehensive project documentation
+│   │   ├── chat_body.py               # ChatBody schemas & retrieval mode
+│   │   ├── conversation_models.py     # Conversation & turn schemas
+│   │   └── document_models.py         # Document, RetrievedChunk, and RagDebugInfo
+│   ├── repositories/
+│   │   ├── conversation_repository.py # SQLite conversation & turn persistence
+│   │   └── document_repository.py     # SQLite document metadata & state tracking
+│   ├── routers/
+│   │   ├── chat_router.py             # /ws/chat and /chat routing
+│   │   └── document_router.py         # /api/documents upload, reindex, delete
+│   ├── services/
+│   │   ├── bm25_store_service.py      # BM25 store, tokenization & JSON persistence
+│   │   ├── document_chunker.py        # Sentence & paragraph-aware chunking
+│   │   ├── document_parser.py         # PDF, DOCX, TXT, MD parsers
+│   │   ├── document_security.py       # SHA-256 duplicate detection & sanitization
+│   │   ├── document_service.py        # Ingestion pipeline, sync & safe reindexing
+│   │   ├── embedding_service.py       # SentenceTransformers singleton wrapper
+│   │   ├── llm_service.py             # Gemini streaming, prompts & fallback cascade
+│   │   ├── rag_service.py             # Context formulation, evidence IDs & citations
+│   │   ├── search_service.py          # Tavily search wrapper
+│   │   ├── sort_source_service.py     # Web search vector re-ranking
+│   │   ├── vector_store_service.py    # ChromaDB wrapper
+│   │   └── retrievers/
+│   │       ├── base_retriever.py      # Abstract BaseRetriever interface
+│   │       ├── bm25_retriever.py      # Lexical BM25 retriever
+│   │       ├── hybrid_retriever.py    # Fused dense + lexical hybrid retriever
+│   │       ├── retriever_factory.py   # Mode factory ('hybrid', 'vector', 'bm25')
+│   │       ├── score_normalizer.py    # Reusable Min-Max score normalization
+│   │       └── vector_retriever.py    # Dense vector retriever
+│   └── tests/
+│       ├── test_conversation_repository.py # 7 tests
+│       ├── test_document_rag.py            # 12 tests
+│       └── test_hybrid_retrieval.py        # 21 tests (40 tests total)
+└── README.md
 ```
-
-### Component Responsibility Breakdown
-
-#### Frontend (`lib/`)
-- **[main.dart](lib/main.dart)**: Sets up the Flutter application root, configures the dark `ThemeData` using `AppColors.background`, and defines the initial route to `HomePage`.
-- **[home_page.dart](lib/pages/home_page.dart)**: Presents the hero search experience with the collapsible `SideBar`, centered `SearchSection`, and category focus buttons (`Search`, `Attach`). When a query is submitted, it initializes the WebSocket connection and pushes to `ChatPage`.
-- **[chat_page.dart](lib/pages/chat_page.dart)**: Coordinates the conversation lifecycle. Maintains `List<ChatTurn> _turns`. Subscribes to `searchResultStream`, `contentStream`, and `followUpStream`. Handles auto-scrolling as tokens arrive.
-- **[chat_web_services.dart](lib/services/chat_web_services.dart)**: Singleton service encapsulating the `WebSocket` client. Exposes three broadcast streams: `searchResultStream`, `contentStream`, and `followUpStream`. Encodes query and history payloads.
-- **[app_logger.dart](lib/utils/app_logger.dart)**: Centralized logging utility with timestamps, tags, and severity levels (`debug`, `info`, `warn`, `error`). Dispatches to `dart:developer.log` and `debugPrint`.
-- **[answer_section.dart](lib/widget/answer_section.dart)**: Renders the markdown answer using `MarkdownBody`. Displays a shimmer placeholder while waiting for the first token, and provides copy-to-clipboard functionality upon completion.
-- **[sources_section.dart](lib/widget/sources_section.dart)**: Renders horizontal cards for verified search sources with domain favicons/initials, titles, and similarity scores. Opens URLs in the default browser.
-- **[follow_up_section.dart](lib/widget/follow_up_section.dart)**: Displays 3 suggested follow-up chips and a bottom query input bar for continuing the multi-turn thread.
-- **[colors.dart](lib/theme/colors.dart)**: Color palette tokens (`background: #131415`, `sideNav: #171819`, `searchBar: #1C1E20`, `submitButton: #20B8CD`, etc.).
-
-#### Backend (`server/`)
-- **[main.py](server/main.py)**: FastAPI entrypoint. Establishes the WebSocket endpoint `/ws/chat` and HTTP endpoint `/chat`. Coordinates async workflow across `SearchService`, `SortSourceService`, and `LLMService`.
-- **[config.py](server/config.py)**: Pydantic `BaseSettings` reading `TAVILY_API_KEY` and `GEMINI_API_KEY` from `.env`.
-- **[chat_body.py](server/pydantic_models/chat_body.py)**: Request validation model with fields `query: str` and `history: list[dict] = []`.
-- **[llm_service.py](server/services/llm_service.py)**: Wraps Google GenAI SDK. Implements `contextualize_query()`, `generate_response()`, and `generate_follow_ups()` with multi-model fallback cascade.
-- **[search_service.py](server/services/search_service.py)**: Executes web searches via `TavilyClient`, extracting `title`, `url`, and `content`.
-- **[sort_source_service.py](server/services/sort_source_service.py)**: Loads `all-MiniLM-L6-v2`, computes vector dot products for cosine similarity, filters results below `0.3`, and sorts by relevance.
 
 ---
 
-## 📡 Wire Protocol & Network Contracts
+## 📡 Wire Protocol & API Contracts
 
 ### WebSocket Endpoint: `ws://localhost:8000/ws/chat`
 
-#### 1. Inbound Client Message (Flutter &rarr; Backend)
-Sent as a JSON text frame when the user submits a query or clicks a follow-up chip:
-
+#### Client &rarr; Server Payload
 ```json
 {
-  "query": "Who is the CEO of Google and what is their background?",
-  "history": [
-    {
-      "query": "What companies belong to Alphabet?",
-      "answer": "Alphabet Inc. is a multinational conglomerate comprising Google, Waymo, DeepMind, Verily, and Calico..."
-    }
-  ]
+  "query": "What clinical indicators suggest CYP3A4 inhibition?",
+  "history": [],
+  "mode": "rag",
+  "document_ids": ["doc_0195e2f7_a82b_74dc"],
+  "retrieval_mode": "hybrid",
+  "debug": false
 }
 ```
 
-| Field | Type | Required | Description |
-| :--- | :---: | :---: | :--- |
-| `query` | `string` | **Yes** | The user's latest question or follow-up query. |
-| `history` | `array[object]` | No | Chronological list of prior turns (`query` and `answer`) used for contextualization. |
+| Field | Type | Description |
+| :--- | :---: | :--- |
+| `query` | `string` | **Required**. The user's query. |
+| `history` | `array[object]` | Optional prior conversation turns (`query`, `answer`). |
+| `mode` | `string` | `"rag"` (documents selected) or `"search"` (web search). |
+| `document_ids` | `array[string]` | Optional document isolation filter. |
+| `retrieval_mode` | `string` | Optional: `"hybrid"` (default), `"vector"`, or `"bm25"`. |
+| `debug` | `boolean` | When `true`, server emits an additional `rag_debug` payload. |
+
+#### Server &rarr; Client Message Flow
+1. **`search_results`**: Formatted document chunks or web sources sent immediately.
+2. **`rag_debug`** *(optional, only if debug enabled)*: Emits candidate breakdown, vector scores, BM25 scores, normalized scores, and final hybrid scores.
+3. **`content`**: Real-time token chunks streamed from Gemini.
+4. **`done`**: Stream termination signal with resolved human-readable citations.
+5. **`follow_ups`**: 3 suggested next queries.
 
 ---
 
-#### 2. Outbound Server Messages (Backend &rarr; Flutter)
+## ⚙️ Configuration Matrix
 
-##### A. `search_results` (Emitted once search & re-ranking finish)
-```json
-{
-  "type": "search_results",
-  "data": [
-    {
-      "title": "Sundar Pichai - Wikipedia",
-      "url": "https://en.wikipedia.org/wiki/Sundar_Pichai",
-      "content": "Pichai Sundararajan is an American business executive who is the chief executive officer of Alphabet and Google...",
-      "score": 0.784
-    },
-    {
-      "title": "Alphabet Leadership: Sundar Pichai",
-      "url": "https://abc.xyz/investor/management/",
-      "content": "Sundar Pichai joined Google in 2004 where he led the development of Google Chrome, ChromeOS, and Google Drive...",
-      "score": 0.692
-    }
-  ]
-}
-```
+Create `server/.env` based on `server/.env.example`:
 
-##### B. `content` (Emitted repeatedly as LLM generates tokens)
-```json
-{
-  "type": "content",
-  "data": "Sundar Pichai is an American business executive currently serving as the CEO of both Alphabet and Google... "
-}
-```
-
-##### C. `done` (Emitted once generation concludes)
-```json
-{
-  "type": "done"
-}
-```
-
-##### D. `follow_ups` (Emitted with 3 suggested follow-up questions)
-```json
-{
-  "type": "follow_ups",
-  "data": [
-    "What university degrees did Sundar Pichai earn?",
-    "When did Sundar Pichai become CEO of Google?",
-    "What major products did he manage before becoming CEO?"
-  ]
-}
-```
-
-##### E. `error` (Emitted if an unhandled exception occurs)
-```json
-{
-  "type": "error",
-  "data": "Detailed error message string"
-}
-```
-
----
-
-### HTTP REST Fallback: `POST /chat`
-
-```bash
-curl -X POST http://localhost:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What is Flutter?", "history": []}'
-```
-Returns a single complete markdown response string upon completion.
-
----
-
-## ⚙️ Configuration & Environment Matrix
-
-The backend requires the following keys defined in `server/.env`:
-
-| Variable | Required | Default | Description |
-| :--- | :---: | :---: | :--- |
-| `TAVILY_API_KEY` | **Yes** | `"your_tavily_api_key"` | API key for Tavily AI Web Search. Obtain from [app.tavily.com](https://app.tavily.com/). |
-| `GEMINI_API_KEY` | **Yes** | `"your_gemini_api_key"` | Google Gemini API key for contextualization and generation. Obtain from [Google AI Studio](https://aistudio.google.com/). |
-
-### Example `server/.env`:
 ```env
+# Required API Keys
 TAVILY_API_KEY=tvly-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 GEMINI_API_KEY=AIzaxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Local Storage Paths
+DATABASE_PATH=conversations.db
+CHROMA_DIR=chroma_db
+BM25_DIR=bm25_index
+UPLOADS_DIR=uploads
+
+# Chunking & Document Ingestion
+DEFAULT_CHUNK_SIZE=600
+DEFAULT_CHUNK_OVERLAP=120
+MAX_FILE_SIZE_MB=50
+
+# Hybrid Retrieval Settings
+RETRIEVAL_MODE=hybrid
+HYBRID_VECTOR_WEIGHT=0.60
+HYBRID_BM25_WEIGHT=0.40
+HYBRID_VECTOR_CANDIDATE_K=10
+HYBRID_BM25_CANDIDATE_K=10
+HYBRID_FINAL_TOP_K=5
+RAG_RELEVANCE_THRESHOLD=0.0
+RAG_DEBUG=false
 ```
 
 ---
 
-## 🚀 Developer Runbook & CLI Workflows
+## 🚀 Quickstart & Developer Runbook
 
 ### 1. Prerequisites
-- **Flutter SDK**: `^3.12.2` or later ([Flutter Install Guide](https://docs.flutter.dev/get-started/install))
+- **Flutter SDK**: `^3.12.2` ([Install Guide](https://docs.flutter.dev/get-started/install))
 - **Python**: `3.10` or `3.11` ([Python Downloads](https://www.python.org/downloads/))
-- **Google Gemini API Key**
-- **Tavily Search API Key**
+- **Google Gemini API Key** ([Google AI Studio](https://aistudio.google.com/))
+- **Tavily Search API Key** ([Tavily](https://app.tavily.com/))
 
 ---
 
-### 2. Backend Setup & Startup
+### 2. Backend Setup
 
-1. **Open a terminal and navigate to the `server/` folder**:
-   ```bash
-   cd server
-   ```
+```powershell
+cd server
 
-2. **Create and activate a virtual environment**:
-   - **Windows (PowerShell)**:
-     ```powershell
-     python -m venv venv
-     .\venv\Scripts\Activate.ps1
-     ```
-   - **macOS / Linux**:
-     ```bash
-     python3 -m venv venv
-     source venv/bin/activate
-     ```
+# Create and activate virtual environment
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 
-3. **Install Python dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-   > [!TIP]
-   > On the first startup, `sentence-transformers` downloads `all-MiniLM-L6-v2` (~90MB) to the Hugging Face local cache (`~/.cache/huggingface/hub`).
+# Install pinned dependencies
+pip install -r requirements.txt
 
-4. **Set environment variables**:
-   ```bash
-   cp .env.example .env
-   ```
-   Edit `.env` to include your valid `TAVILY_API_KEY` and `GEMINI_API_KEY`.
+# Configure environment variables
+cp .env.example .env
+# Edit .env and paste your GEMINI_API_KEY and TAVILY_API_KEY
 
-5. **Start the server**:
-   ```bash
-   fastapi dev main.py
-   ```
-   *The server will start listening at `http://127.0.0.1:8000`, with WebSockets ready at `ws://127.0.0.1:8000/ws/chat`.*
+# Start backend server
+fastapi dev main.py
+```
+*Backend runs on `http://127.0.0.1:8000` (Swagger UI: `http://127.0.0.1:8000/docs`).*
 
 ---
 
-### 3. Frontend Setup & Startup
+### 3. Frontend Setup
 
-1. **Open a second terminal and navigate to the project root**:
-   ```bash
-   cd ..
-   ```
+In a new terminal window:
+```powershell
+# Get dependencies
+flutter pub get
 
-2. **Fetch Flutter dependencies**:
-   ```bash
-   flutter pub get
-   ```
+# Launch on Windows Desktop
+flutter run -d windows
 
-3. **Launch the application on your desired platform**:
-   - **Web (Chrome)**:
-     ```bash
-     flutter run -d chrome
-     ```
-   - **Windows Desktop**:
-     ```bash
-     flutter run -d windows
-     ```
-   - **Mobile (Android / iOS)**:
-     ```bash
-     flutter run
-     ```
+# Or launch on Web
+flutter run -d chrome
+```
 
 ---
 
-### 4. VS Code 1-Click Debugging
-The repository includes [.vscode/launch.json](.vscode/launch.json) with pre-configured compound targets:
-- Select **`Full Stack (Backend + Chrome)`** from the Run & Debug panel to launch both the FastAPI backend and Chrome Flutter frontend simultaneously.
-- Select **`Full Stack (Backend + Windows Desktop)`** for native Windows desktop development.
+### 4. Running Automated Tests
+
+Run the complete test suite across all Phase 1, Phase 2, and Phase 3 suites:
+
+```powershell
+server\venv\Scripts\python -m unittest discover -s server/tests -v
+```
+
+**Result**: All 40 unit and integration tests execute and pass:
+```text
+Ran 40 tests in 22.007s
+OK
+```
 
 ---
 
-### 5. Testing & Static Analysis
+## 📄 License
 
-- **Run Flutter Widget Tests**:
-  ```bash
-  flutter test
-  ```
-  Runs tests including [test/follow_up_widget_test.dart](test/follow_up_widget_test.dart).
-
-- **Run Flutter Analyzer**:
-  ```bash
-  flutter analyze
-  ```
-
-- **Python Type Checking**:
-  Configured via [pyrightconfig.json](pyrightconfig.json) pointing to the `server/venv` environment:
-  ```bash
-  pyright server
-  ```
-
----
-
-## 🛠️ Extensibility & Future Roadmap
-
-For AI chatbots and developers implementing extensions:
-
-1. **Adding Alternative Search Providers**:
-   - `SearchService` in [search_service.py](server/services/search_service.py) outputs standard dictionaries `[{"title": "...", "url": "...", "content": "..."}]`. You can add providers like **SearXNG**, **DuckDuckGo**, or **Google Custom Search** by implementing the same schema.
-2. **Swapping LLMs or Local Inference**:
-   - `LLMService` in [llm_service.py](server/services/llm_service.py) provides clean separation. Integrate local LLMs via **Ollama**, **vLLM**, or OpenAI-compatible endpoints by modifying `generate_response()` to yield chunks from an async generator.
-3. **Customizing Re-Ranking Thresholds**:
-   - The cosine similarity filtering threshold is set to `0.3` in [sort_source_service.py](server/services/sort_source_service.py). Adjust this value to calibrate the trade-off between recall (lower threshold) and precision (higher threshold).
-4. **Persistent Conversation History**:
-   - Currently, conversation turns are retained in Flutter memory across `ChatTurn` items. SQLite, Hive, or a backend database (e.g. Supabase, PostgreSQL) can be integrated to persist threads across application sessions.
-
----
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.

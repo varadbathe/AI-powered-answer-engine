@@ -20,6 +20,8 @@ _sort_source_service: SortSourceService | None = None
 _llm_service: LLMService | None = None
 _conversation_service: ConversationService | None = None
 _rag_service: RagService | None = None
+_vector_retriever: Any | None = None
+_bm25_retriever: Any | None = None
 
 
 def set_chat_services(
@@ -28,13 +30,18 @@ def set_chat_services(
     llm_service: LLMService,
     conversation_service: ConversationService,
     rag_service: RagService,
+    vector_retriever: Any | None = None,
+    bm25_retriever: Any | None = None,
 ) -> None:
     global _search_service, _sort_source_service, _llm_service, _conversation_service, _rag_service
+    global _vector_retriever, _bm25_retriever
     _search_service = search_service
     _sort_source_service = sort_source_service
     _llm_service = llm_service
     _conversation_service = conversation_service
     _rag_service = rag_service
+    _vector_retriever = vector_retriever
+    _bm25_retriever = bm25_retriever
 
 
 @router.websocket("/ws/chat")
@@ -56,6 +63,7 @@ async def websocket_chat_endpoint(websocket: WebSocket):
             client_conv_id = data.get("conversation_id")
             mode = data.get("mode")  # "search" or "rag"
             document_ids = data.get("document_ids")  # list of doc IDs
+            retrieval_mode = data.get("retrieval_mode")  # "hybrid", "vector", "bm25"
             debug_requested = data.get("debug", False)
 
             if not query:
@@ -85,19 +93,38 @@ async def websocket_chat_endpoint(websocket: WebSocket):
                 # ---------------------------------------------------------
                 assert _rag_service is not None
 
+                # Determine effective rag service based on optional per-request retrieval_mode
+                effective_rag_service = _rag_service
+                if retrieval_mode and _vector_retriever and _bm25_retriever:
+                    try:
+                        from services.retrievers.retriever_factory import RetrieverFactory
+                        custom_retriever = RetrieverFactory.create_retriever(
+                            mode=retrieval_mode,
+                            vector_retriever=_vector_retriever,
+                            bm25_retriever=_bm25_retriever,
+                        )
+                        effective_rag_service = RagService(
+                            retriever=custom_retriever,
+                            debug_mode=_rag_service.debug_mode,
+                            relevance_threshold=_rag_service.relevance_threshold,
+                        )
+                    except Exception as e:
+                        print(f"Warning: Failed to use custom retrieval_mode '{retrieval_mode}': {e}")
+                        effective_rag_service = _rag_service
+
                 # 1. Retrieve relevant chunks (filtered by document_ids if provided)
                 chunks = await asyncio.to_thread(
-                    _rag_service.retrieve,
+                    effective_rag_service.retrieve,
                     query,
                     5,
                     document_ids,
                 )
 
                 # 2. Build structured context with stable evidence tags [DOC_CHUNK_X]
-                context_str, evidence_map = _rag_service.build_context(chunks)
+                context_str, evidence_map = effective_rag_service.build_context(chunks)
 
                 # 3. Format sources and send immediately to UI
-                client_sources = _rag_service.format_sources_for_client(chunks, evidence_map)
+                client_sources = effective_rag_service.format_sources_for_client(chunks, evidence_map)
                 await websocket.send_json(
                     {
                         "type": "search_results",
@@ -108,8 +135,13 @@ async def websocket_chat_endpoint(websocket: WebSocket):
                 )
 
                 # 4. Optional RAG Debug payload (only sent if RAG_DEBUG or requested)
-                if _rag_service.debug_mode or debug_requested:
-                    debug_payload = _rag_service.build_debug_info(chunks, context_str)
+                if effective_rag_service.debug_mode or debug_requested:
+                    debug_payload = effective_rag_service.build_debug_info(
+                        chunks,
+                        context_str,
+                        query=query,
+                        retrieval_mode=retrieval_mode or "hybrid",
+                    )
                     if debug_payload:
                         await websocket.send_json(
                             {
@@ -118,6 +150,7 @@ async def websocket_chat_endpoint(websocket: WebSocket):
                                 "conversation_id": active_conv_id,
                             }
                         )
+
 
                 # 5. Stream grounded answer from Gemini
                 raw_response = ""
@@ -252,11 +285,30 @@ def http_chat_endpoint(body: ChatBody):
 
     if mode == "rag":
         assert _rag_service is not None
-        chunks = _rag_service.retrieve(body.query, 5, document_ids)
-        context_str, evidence_map = _rag_service.build_context(chunks)
+        effective_rag_service = _rag_service
+        retrieval_mode = getattr(body, "retrieval_mode", None)
+        if retrieval_mode and _vector_retriever and _bm25_retriever:
+            try:
+                from services.retrievers.retriever_factory import RetrieverFactory
+                custom_retriever = RetrieverFactory.create_retriever(
+                    mode=retrieval_mode,
+                    vector_retriever=_vector_retriever,
+                    bm25_retriever=_bm25_retriever,
+                )
+                effective_rag_service = RagService(
+                    retriever=custom_retriever,
+                    debug_mode=_rag_service.debug_mode,
+                    relevance_threshold=_rag_service.relevance_threshold,
+                )
+            except Exception as e:
+                print(f"Warning: Failed to use custom retrieval_mode '{retrieval_mode}': {e}")
+
+        chunks = effective_rag_service.retrieve(body.query, 5, document_ids)
+        context_str, evidence_map = effective_rag_service.build_context(chunks)
         response = "".join(_llm_service.generate_rag_response(body.query, context_str, history=body.history))
-        resolved, _ = _rag_service.resolve_citations(response, evidence_map)
+        resolved, _ = effective_rag_service.resolve_citations(response, evidence_map)
         return resolved
+
 
     assert _search_service is not None
     assert _sort_source_service is not None

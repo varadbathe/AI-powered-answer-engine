@@ -1,14 +1,17 @@
-import 'package:ai_answer_engine/theme/colors.dart';
+import 'package:research_os/theme/colors.dart';
 import 'package:flutter/material.dart';
 
 
 class SearchBarButton extends StatefulWidget {
   final IconData icon;
   final String text;
+  final VoidCallback? onTap;
+
   const SearchBarButton({
     super.key,
     required this.icon,
     required this.text,
+    this.onTap,
   });
 
   @override
@@ -30,30 +33,33 @@ class _SearchBarButtonState extends State<SearchBarButton> {
           isHovered = false;
         });
       },
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 4,
-        ),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6),
-          color: isHovered ? AppColors.proButton : Colors.transparent,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              widget.icon,
-              color: AppColors.iconGrey,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              widget.text,
-              style: TextStyle(
-                color: AppColors.textGrey,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            color: isHovered ? AppColors.proButton : Colors.transparent,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                widget.icon,
+                color: AppColors.iconGrey,
+                size: 20,
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Text(
+                widget.text,
+                style: const TextStyle(
+                  color: AppColors.textGrey,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

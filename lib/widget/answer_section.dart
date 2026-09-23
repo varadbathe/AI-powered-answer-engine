@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:ai_answer_engine/services/chat_web_services.dart';
-import 'package:ai_answer_engine/theme/colors.dart';
-import 'package:ai_answer_engine/utils/app_logger.dart';
+import 'package:research_os/services/chat_web_services.dart';
+import 'package:research_os/theme/colors.dart';
+import 'package:research_os/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:ai_answer_engine/utils/app_logger.dart';
+import 'package:research_os/utils/app_logger.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
 class ChatWebService {
@@ -18,11 +18,21 @@ class ChatWebService {
       StreamController<Map<String, dynamic>>.broadcast();
   final _followUpController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _conversationIdController =
+      StreamController<String>.broadcast();
+  final _errorController =
+      StreamController<String>.broadcast();
+
+  Map<String, dynamic>? lastSearchResults;
+  String accumulatedAnswer = '';
+  bool isStreamingAnswer = false;
 
   Stream<Map<String, dynamic>> get searchResultStream =>
       _searchResultController.stream;
   Stream<Map<String, dynamic>> get contentStream => _contentController.stream;
   Stream<Map<String, dynamic>> get followUpStream => _followUpController.stream;
+  Stream<String> get conversationIdStream => _conversationIdController.stream;
+  Stream<String> get errorStream => _errorController.stream;
 
   void connect() {
     AppLogger.info(
@@ -54,23 +64,32 @@ class ChatWebService {
           final data = json.decode(message.toString());
           final type = data['type'];
 
+          final convId = data['conversation_id'];
+          if (convId != null && convId is String && convId.isNotEmpty) {
+            _conversationIdController.add(convId);
+          }
+
           if (type == 'search_result' || type == 'search_results') {
             AppLogger.info(
               'Received search results: ${(data['data'] as List?)?.length ?? 0} items',
               tag: 'WebSocket',
             );
+            lastSearchResults = data;
             _searchResultController.add(data);
           } else if (type == 'content') {
             AppLogger.debug(
               'Received content chunk: "${data['data']}"',
               tag: 'WebSocket',
             );
+            accumulatedAnswer += (data['data'] ?? '');
+            isStreamingAnswer = true;
             _contentController.add(data);
           } else if (type == 'done') {
             AppLogger.info(
-              'Received content stream complete signal',
+              'Received content stream complete signal (conv: $convId)',
               tag: 'WebSocket',
             );
+            isStreamingAnswer = false;
             _contentController.add(data);
           } else if (type == 'follow_ups' || type == 'follow_up') {
             AppLogger.info(
@@ -83,6 +102,7 @@ class ChatWebService {
               'Backend error: ${data['data']}',
               tag: 'WebSocket',
             );
+            _errorController.add(data['data']?.toString() ?? 'Error occurred');
           } else {
             AppLogger.warn(
               'Unknown message type: $type',
@@ -110,11 +130,21 @@ class ChatWebService {
     );
   }
 
-  void chat(String query, {List<Map<String, String>>? history}) {
+  void chat(
+    String query, {
+    List<Map<String, String>>? history,
+    String? conversationId,
+    String? mode,
+    List<String>? documentIds,
+  }) {
     AppLogger.info(
-      'Initiating chat query: "$query" (history: ${history?.length ?? 0} turns)',
+      'Initiating chat query: "$query" (conv: $conversationId, mode: $mode, docs: ${documentIds?.length ?? 0}, history: ${history?.length ?? 0} turns)',
       tag: 'ChatWebService',
     );
+
+    lastSearchResults = null;
+    accumulatedAnswer = '';
+    isStreamingAnswer = false;
 
     if (_socket == null) {
       AppLogger.warn(
@@ -128,6 +158,9 @@ class ChatWebService {
       final payload = <String, dynamic>{
         'query': query,
         if (history != null && history.isNotEmpty) 'history': history,
+        if (conversationId != null && conversationId.isNotEmpty) 'conversation_id': conversationId,
+        if (mode != null && mode.isNotEmpty) 'mode': mode,
+        if (documentIds != null && documentIds.isNotEmpty) 'document_ids': documentIds,
       };
       _socket!.send(json.encode(payload));
       AppLogger.info(

@@ -1,11 +1,7 @@
-import asyncio
 import sys
-import traceback
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.websockets import WebSocketState
 from config import Settings
-from pydantic_models.chat_body import ChatBody
 from pydantic_models.conversation_models import (
     ConversationCreate,
     ConversationDetail,
@@ -13,10 +9,18 @@ from pydantic_models.conversation_models import (
     ConversationSummary,
 )
 from repositories.conversation_repository import ConversationRepository
+from repositories.document_repository import DocumentRepository
+from routers.chat_router import router as chat_router, set_chat_services
+from routers.document_router import router as document_router, set_document_service
 from services.conversation_service import ConversationService
+from services.document_service import DocumentService
+from services.embedding_service import EmbeddingService
 from services.llm_service import LLMService
+from services.rag_service import RagService
+from services.retrievers.vector_retriever import VectorRetriever
 from services.search_service import SearchService
 from services.sort_source_service import SortSourceService
+from services.vector_store_service import VectorStoreService
 
 # Ensure stdout and stderr use UTF-8 encoding on Windows to prevent UnicodeEncodeError with emojis/special characters
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -30,7 +34,7 @@ if sys.stderr and hasattr(sys.stderr, "reconfigure"):
     except Exception:
         pass
 
-app = FastAPI(title="AI-Powered Answer Engine API")
+app = FastAPI(title="ResearchOS API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,12 +46,51 @@ app.add_middleware(
 
 settings = Settings()
 
-# Instantiate services
+# ---------------------------------------------------------
+# Service Instantiations
+# ---------------------------------------------------------
 search_service = SearchService()
 sort_source_service = SortSourceService()
 llm_service = LLMService()
+
+# Conversation services
 conversation_repository = ConversationRepository(db_path=settings.DATABASE_PATH)
 conversation_service = ConversationService(repository=conversation_repository)
+
+# Document RAG services
+document_repository = DocumentRepository(db_path=settings.DATABASE_PATH)
+embedding_service = EmbeddingService()
+vector_store_service = VectorStoreService(chroma_dir=settings.CHROMA_DIR)
+vector_retriever = VectorRetriever(
+    embedding_service=embedding_service,
+    vector_store_service=vector_store_service,
+)
+document_service = DocumentService(
+    repository=document_repository,
+    vector_store=vector_store_service,
+    embedding_service=embedding_service,
+    uploads_dir=settings.UPLOADS_DIR,
+    chunk_size=settings.DEFAULT_CHUNK_SIZE,
+    chunk_overlap=settings.DEFAULT_CHUNK_OVERLAP,
+)
+rag_service = RagService(
+    retriever=vector_retriever,
+    debug_mode=settings.RAG_DEBUG,
+)
+
+# Inject services into routers
+set_document_service(document_service)
+set_chat_services(
+    search_service=search_service,
+    sort_source_service=sort_source_service,
+    llm_service=llm_service,
+    conversation_service=conversation_service,
+    rag_service=rag_service,
+)
+
+# Register routers
+app.include_router(document_router)
+app.include_router(chat_router)
 
 
 # ---------------------------------------------------------
@@ -88,147 +131,6 @@ def delete_conversation(conversation_id: str):
     return {"status": "deleted", "id": conversation_id}
 
 
-# ---------------------------------------------------------
-# WebSocket Real-Time Chat Endpoint
-# ---------------------------------------------------------
-
-@app.websocket("/ws/chat")
-async def websocket_chat_endpoint(websocket: WebSocket):
-    await websocket.accept()
-
-    try:
-        while True:
-            try:
-                data = await websocket.receive_json()
-            except WebSocketDisconnect:
-                print("\n--- WebSocket client disconnected gracefully ---")
-                break
-            except Exception:
-                # Disconnection or frame error
-                break
-
-            query = data.get("query")
-            history = data.get("history", [])
-            client_conv_id = data.get("conversation_id")
-
-            if not query:
-                await websocket.send_json({"error": "Query is required"})
-                continue
-
-            # Ensure conversation exists; auto-title deterministically on first turn
-            active_conv = await asyncio.to_thread(
-                conversation_service.get_or_create_conversation,
-                client_conv_id,
-                query,
-            )
-            active_conv_id = active_conv["id"]
-
-            print(f"\n--- New Request: '{query}' (conv: {active_conv_id}, history: {len(history)} turns) ---")
-
-            # Contextualize query for search if follow-up with history
-            search_query = query
-            if history:
-                try:
-                    search_query = await asyncio.to_thread(llm_service.contextualize_query, query, history)
-                    print(f"--- Contextualized Search Query: '{search_query}' ---")
-                except Exception as e:
-                    print(f"Warning: contextualize query error: {e}")
-                    search_query = query
-
-            search_results = await asyncio.to_thread(search_service.web_search, search_query)
-            sorted_results = await asyncio.to_thread(sort_source_service.sort_sources, search_query, search_results)
-            
-            print(f"\n--- Sorted Results ({len(sorted_results)} items) ---\n")
-          
-            await websocket.send_json(
-                {
-                    "type": "search_results",
-                    "data": sorted_results,
-                    "conversation_id": active_conv_id,
-                }
-            )
-
-            full_response = ""
-            for chunk in llm_service.generate_response(query, sorted_results, history=history):
-                full_response += chunk
-                await websocket.send_json(
-                    {
-                        "type": "content",
-                        "data": chunk,
-                        "conversation_id": active_conv_id,
-                    }
-                )
-
-            await websocket.send_json({
-                "type": "done",
-                "conversation_id": active_conv_id,
-            })
-            print(f"\n--- Generated Response Complete ({len(full_response)} chars) ---\n")
-
-            # Generate suggested follow-up questions
-            follow_ups: list[str] = []
-            try:
-                follow_ups = await asyncio.to_thread(llm_service.generate_follow_ups, query, full_response)
-                if follow_ups:
-                    await websocket.send_json(
-                        {
-                            "type": "follow_ups",
-                            "data": follow_ups,
-                            "conversation_id": active_conv_id,
-                        }
-                    )
-                    print(f"--- Sent Suggested Follow-ups: {follow_ups} ---")
-            except Exception as e:
-                print(f"Warning: follow-ups generation failed: {e}")
-
-            # Persist completed turn atomically to SQLite
-            try:
-                await asyncio.to_thread(
-                    conversation_service.save_completed_turn,
-                    conversation_id=active_conv_id,
-                    user_query=query,
-                    assistant_answer=full_response,
-                    sources=sorted_results,
-                    follow_ups=follow_ups,
-                )
-                print(f"--- Successfully Persisted Turn to SQLite (conv: {active_conv_id}) ---")
-            except Exception as e:
-                print(f"Warning: Failed to persist completed turn to SQLite: {e}")
-
-    except WebSocketDisconnect:
-        print("\n--- WebSocket client disconnected gracefully ---")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        traceback.print_exc()
-        try:
-            if websocket.client_state == WebSocketState.CONNECTED:
-                await websocket.send_json({"type": "error", "data": str(e)})
-        except Exception:
-            pass
-
-    finally:
-        try:
-            if websocket.client_state == WebSocketState.CONNECTED:
-                await websocket.close()
-        except Exception:
-            pass
-
-
-# ---------------------------------------------------------
-# Legacy HTTP Chat Endpoint
-# ---------------------------------------------------------
-
-@app.post("/chat")
-def chat_endpoint(body: ChatBody):
-    print(f"\n--- New HTTP Request: '{body.query}' ---")
-    search_query = body.query
-    if body.history:
-        search_query = llm_service.contextualize_query(body.query, body.history)
-
-    search_results = search_service.web_search(search_query)
-    sorted_results = sort_source_service.sort_sources(search_query, search_results)
-
-    response = "".join(llm_service.generate_response(body.query, sorted_results, history=body.history))
-    print(f"\n--- Generated Response ---\n{response}\n--------------------------\n")
-
-    return response
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)

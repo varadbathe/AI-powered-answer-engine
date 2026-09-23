@@ -1,4 +1,4 @@
-import 'package:ai_answer_engine/widget/follow_up_section.dart';
+import 'package:research_os/widget/follow_up_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

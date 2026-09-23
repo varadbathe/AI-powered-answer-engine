@@ -1,7 +1,7 @@
-import 'package:ai_answer_engine/services/chat_web_services.dart';
-import 'package:ai_answer_engine/theme/colors.dart';
-import 'package:ai_answer_engine/widget/search_section.dart';
-import 'package:ai_answer_engine/widget/side_bar.dart';
+import 'package:research_os/services/chat_web_services.dart';
+import 'package:research_os/theme/colors.dart';
+import 'package:research_os/widget/search_section.dart';
+import 'package:research_os/widget/side_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 

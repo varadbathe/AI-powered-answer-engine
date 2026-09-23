@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:ai_answer_engine/services/chat_web_services.dart';
-import 'package:ai_answer_engine/theme/colors.dart';
-import 'package:ai_answer_engine/utils/app_logger.dart';
+import 'package:research_os/services/chat_web_services.dart';
+import 'package:research_os/theme/colors.dart';
+import 'package:research_os/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -86,7 +86,14 @@ class _SourcesSectionState extends State<SourcesSection> {
   @override
   Widget build(BuildContext context) {
     final displayLoading = widget.isLoading ?? isLoading;
-    final displayResults = widget.sources ?? searchResults;
+    final rawResults = widget.sources ?? searchResults;
+    final displayResults = (displayLoading && rawResults.isEmpty)
+        ? [
+            {'title': 'Finding relevant sources...', 'url': ''},
+            {'title': 'Loading document context...', 'url': ''},
+            {'title': 'Analyzing passages...', 'url': ''},
+          ]
+        : rawResults;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,9 +200,11 @@ class _SourceCardState extends State<_SourceCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isDoc = widget.result is Map &&
+        (widget.result['type'] == 'document' || widget.result['page_number'] != null);
     final title = widget.result['title']?.toString() ?? 'Source';
     final url = widget.result['url']?.toString() ?? '';
-    final domain = _extractDomain(url);
+    final domain = isDoc ? url : _extractDomain(url);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -229,22 +238,22 @@ class _SourceCardState extends State<_SourceCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Top row: domain and index badge
+            // Top row: domain/page and index badge
             Row(
               children: [
-                const Icon(
-                  Icons.public_rounded,
+                Icon(
+                  isDoc ? Icons.description_outlined : Icons.public_rounded,
                   size: 12,
-                  color: AppColors.textSecondary,
+                  color: isDoc ? AppColors.submitButton : AppColors.textSecondary,
                 ),
                 const SizedBox(width: 5),
                 Expanded(
                   child: Text(
                     domain,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: isDoc ? AppColors.submitButton : AppColors.textSecondary,
                       fontSize: 11,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: isDoc ? FontWeight.w600 : FontWeight.w500,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

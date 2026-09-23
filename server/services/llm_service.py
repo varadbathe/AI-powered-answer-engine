@@ -9,7 +9,7 @@ settings = Settings()
 class LLMService:
     def __init__(self):
         self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        self.models = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"]
+        self.models = ["gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash"]
 
     def contextualize_query(self, query: str, history: list[dict]) -> str:
         """
@@ -95,6 +95,55 @@ Standalone Search Query:"""
                 return  # Successfully generated response
             except Exception as e:
                 print(f"Warning: Model {model} failed with: {e}. Trying fallback if available...")
+                last_error = e
+
+        if last_error:
+            raise last_error
+
+    def generate_rag_response(self, query: str, context: str, history: list[dict] | None = None):
+        """
+        Generates a grounded streaming answer based on retrieved document context with evidence citations.
+        """
+        history_context = ""
+        if history:
+            history_lines = []
+            for item in history:
+                q = item.get("query", "")
+                a = item.get("answer", "")
+                if q:
+                    history_lines.append(f"User: {q}")
+                if a:
+                    history_lines.append(f"Assistant: {a}")
+            if history_lines:
+                history_context = "Previous Conversation History:\n" + "\n".join(history_lines) + "\n\n"
+
+        full_prompt = f"""
+{history_context}Retrieved Document Context:
+{context}
+
+Query: {query}
+
+Instructions:
+You are ResearchOS, an expert AI research and answer engine answering questions based strictly on the retrieved document context provided above.
+1. Provide a comprehensive, accurate, and well-structured answer using ONLY the facts present in the retrieved context.
+2. For every factual claim, cite the corresponding evidence tag from the context in square brackets, e.g. [DOC_CHUNK_1] or [DOC_CHUNK_2]. If multiple chunks support a claim, you may cite both, e.g. [DOC_CHUNK_1][DOC_CHUNK_2].
+3. Do NOT make up facts, URLs, or external information. If the context is insufficient to answer the query, clearly state what information is missing.
+4. Do NOT invent your own citation format; use ONLY the exact evidence tags [DOC_CHUNK_X] as defined in the context.
+"""
+
+        last_error = None
+        for model in self.models:
+            try:
+                response = self.client.models.generate_content_stream(
+                    model=model,
+                    contents=full_prompt,
+                )
+                for chunk in response:
+                    if chunk.text:
+                        yield chunk.text
+                return  # Successfully generated response
+            except Exception as e:
+                print(f"Warning: Model {model} failed in generate_rag_response: {e}. Trying fallback...")
                 last_error = e
 
         if last_error:

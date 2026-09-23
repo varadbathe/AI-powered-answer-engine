@@ -1,8 +1,9 @@
-import 'package:ai_answer_engine/pages/chat_page.dart';
-import 'package:ai_answer_engine/services/chat_web_services.dart';
-import 'package:ai_answer_engine/theme/colors.dart';
-import 'package:ai_answer_engine/utils/app_logger.dart';
-import 'package:ai_answer_engine/widget/search_bar_button.dart';
+import 'package:research_os/pages/chat_page.dart';
+import 'package:research_os/services/chat_web_services.dart';
+import 'package:research_os/theme/colors.dart';
+import 'package:research_os/utils/app_logger.dart';
+import 'package:research_os/widget/document_management_dialog.dart';
+import 'package:research_os/widget/search_bar_button.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -15,11 +16,31 @@ class SearchSection extends StatefulWidget {
 
 class _SearchSectionState extends State<SearchSection> {
   final queryController = TextEditingController();
+  Set<String> _selectedDocumentIds = {};
 
   @override
   void dispose() {
     queryController.dispose();
     super.dispose();
+  }
+
+  void _openDocumentPicker() async {
+    final result = await showDialog<Set<String>>(
+      context: context,
+      builder: (ctx) => DocumentManagementDialog(
+        initialSelectedIds: _selectedDocumentIds,
+        onSelectionChanged: (updated) {
+          setState(() {
+            _selectedDocumentIds = updated;
+          });
+        },
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _selectedDocumentIds = result;
+      });
+    }
   }
 
   void _submitSearch() {
@@ -28,11 +49,19 @@ class _SearchSectionState extends State<SearchSection> {
       AppLogger.warn('Attempted to search with empty query', tag: 'UI');
       return;
     }
-    AppLogger.info('User submitted search: "$query"', tag: 'UI');
-    ChatWebService().chat(query);
+    final isRag = _selectedDocumentIds.isNotEmpty;
+    final mode = isRag ? 'rag' : 'search';
+    final docList = isRag ? _selectedDocumentIds.toList() : null;
+
+    AppLogger.info('User submitted search: "$query" (mode: $mode, docs: ${docList?.length ?? 0})', tag: 'UI');
+    ChatWebService().chat(query, mode: mode, documentIds: docList);
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => ChatPage(question: query),
+        builder: (context) => ChatPage(
+          question: query,
+          mode: mode,
+          documentIds: docList,
+        ),
       ),
     );
   }
@@ -63,13 +92,46 @@ class _SearchSectionState extends State<SearchSection> {
             ),
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_selectedDocumentIds.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 12.0),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.submitButton.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.submitButton.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.description_outlined, size: 14, color: AppColors.submitButton),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${_selectedDocumentIds.length} doc${_selectedDocumentIds.length > 1 ? "s" : ""} attached (RAG Mode)',
+                              style: const TextStyle(fontSize: 12, color: AppColors.submitButton, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(width: 6),
+                            GestureDetector(
+                              onTap: () => setState(() => _selectedDocumentIds.clear()),
+                              child: const Icon(Icons.close, size: 14, color: AppColors.textGrey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: TextField(
                   controller: queryController,
                   onSubmitted: (_) => _submitSearch(),
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Search anything...',
                     hintStyle: TextStyle(
                       color: AppColors.textGrey,
@@ -85,14 +147,17 @@ class _SearchSectionState extends State<SearchSection> {
                 padding: const EdgeInsets.all(10.0),
                 child: Row(
                   children: [
-                    SearchBarButton(
+                    const SearchBarButton(
                       icon: Icons.auto_awesome_outlined,
                       text: 'Focus',
                     ),
                     const SizedBox(width: 12),
                     SearchBarButton(
                       icon: Icons.add_circle_outline_outlined,
-                      text: 'Attach',
+                      text: _selectedDocumentIds.isNotEmpty
+                          ? 'Attach (${_selectedDocumentIds.length})'
+                          : 'Attach',
+                      onTap: _openDocumentPicker,
                     ),
                     const Spacer(),
                     GestureDetector(

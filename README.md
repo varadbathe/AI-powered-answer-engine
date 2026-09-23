@@ -56,65 +56,74 @@
 
 ```mermaid
 flowchart TD
-    subgraph Client["Flutter Frontend Client"]
-        UI[Search & Chat UI]
-        DM[Document Management Dialog]
+    subgraph Client ["Flutter Frontend Client"]
+        UI["Search & Chat UI"]
+        DM["Document Management Dialog"]
     end
 
-    subgraph Backend["FastAPI Backend (server/)"]
-        Router[Chat Router: /ws/chat & /chat]
-        DocRouter[Document Router: /api/documents]
+    subgraph Backend ["FastAPI Backend (server/)"]
+        Router["Chat Router: /ws/chat & /chat"]
+        DocRouter["Document Router: /api/documents"]
         
-        subgraph ModeDetect{"Mode Detection"}
-            IsDoc{Documents Selected?}
+        IsDoc{"Documents Selected?"}
+
+        subgraph WebSearchEngine ["Web Search Engine"]
+            Context["LLM Query Contextualizer"]
+            Tavily["Tavily Web Search"]
+            ReRank["SentenceTransformer Re-Ranker"]
         end
 
-        subgraph WebSearchEngine["Web Search Engine"]
-            Context[LLM Query Contextualizer]
-            Tavily[Tavily Web Search]
-            ReRank[SentenceTransformer Cosine Re-Ranker]
-        end
-
-        subgraph HybridRAG["Hybrid Retrieval Engine (Phase 3)"]
-            subgraph Retrievers["Parallel Candidate Retrieval"]
-                VecRet[VectorRetriever: ChromaDB Top 10]
-                BM25Ret[BM25Retriever: Lexical Top 10]
+        subgraph HybridRAG ["Hybrid Retrieval Engine (Phase 3)"]
+            subgraph Retrievers ["Parallel Candidate Retrieval"]
+                VecRet["VectorRetriever (ChromaDB Top 10)"]
+                BM25Ret["BM25Retriever (Lexical Top 10)"]
             end
-            Norm[ScoreNormalizer: Min-Max]
-            Fusion["Weighted Fusion: 0.60 Vec + 0.40 BM25"]
-            Dedup[Deduplication & Top 5 Selection]
+            Norm["ScoreNormalizer (Min-Max)"]
+            Fusion["Weighted Fusion (0.60 Vec + 0.40 BM25)"]
+            Dedup["Deduplication & Top 5 Selection"]
         end
 
-        subgraph IngestionPipeline["Document Ingestion & Storage"]
-            Parser[DocumentParser: PDF, DOCX, TXT, MD]
-            Chunker[DocumentChunker: Page/Section Aware]
-            Embedder[EmbeddingService: all-MiniLM-L6-v2]
-            ChromaDB[(ChromaDB Persistent)]
-            BM25Store[(BM25 JSON Store)]
-            SQLite[(SQLite: conversations.db)]
+        subgraph IngestionPipeline ["Document Ingestion & Storage"]
+            Parser["DocumentParser (PDF, DOCX, TXT, MD)"]
+            Chunker["DocumentChunker (Page/Section Aware)"]
+            Embedder["EmbeddingService (all-MiniLM-L6-v2)"]
+            ChromaDB[("ChromaDB Persistent")]
+            BM25Store[("BM25 JSON Store")]
+            SQLite[("SQLite: conversations.db")]
         end
 
-        subgraph LLMGeneration["Grounded Synthesis"]
-            LLM[Google Gemini Streaming]
-            CiteResolve[Citation & Evidence Resolver]
+        subgraph LLMGeneration ["Grounded Synthesis"]
+            LLM["Google Gemini Streaming"]
+            CiteResolve["Citation & Evidence Resolver"]
         end
     end
 
     UI -->|WebSocket JSON| Router
     DM -->|REST API| DocRouter
     DocRouter --> IngestionPipeline
-    Parser --> Chunker --> Embedder
-    Embedder --> ChromaDB & BM25Store
+    Parser --> Chunker
+    Chunker --> Embedder
+    Embedder --> ChromaDB
+    Embedder --> BM25Store
 
-    Router --> ModeDetect
-    IsDoc -->|No: Web Search| Context --> Tavily --> ReRank --> LLM
-    IsDoc -->|Yes: Document RAG| VecRet & BM25Ret
+    Router --> IsDoc
+    IsDoc -->|No: Web Search| Context
+    Context --> Tavily
+    Tavily --> ReRank
+    ReRank --> LLM
+
+    IsDoc -->|Yes: Document RAG| VecRet
+    IsDoc -->|Yes: Document RAG| BM25Ret
     VecRet --> Norm
     BM25Ret --> Norm
-    Norm --> Fusion --> Dedup --> LLM
+    Norm --> Fusion
+    Fusion --> Dedup
+    Dedup --> LLM
 
-    LLM --> CiteResolve -->|Stream Tokens + Citations| UI
+    LLM --> CiteResolve
+    CiteResolve -->|Stream Tokens + Citations| UI
 ```
+
 
 ---
 

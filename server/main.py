@@ -12,15 +12,20 @@ from repositories.conversation_repository import ConversationRepository
 from repositories.document_repository import DocumentRepository
 from routers.chat_router import router as chat_router, set_chat_services
 from routers.document_router import router as document_router, set_document_service
+from services.bm25_store_service import BM25StoreService
 from services.conversation_service import ConversationService
 from services.document_service import DocumentService
 from services.embedding_service import EmbeddingService
 from services.llm_service import LLMService
 from services.rag_service import RagService
+from services.retrievers.bm25_retriever import BM25Retriever
+from services.retrievers.hybrid_retriever import HybridRetriever
+from services.retrievers.retriever_factory import RetrieverFactory
 from services.retrievers.vector_retriever import VectorRetriever
 from services.search_service import SearchService
 from services.sort_source_service import SortSourceService
 from services.vector_store_service import VectorStoreService
+
 
 # Ensure stdout and stderr use UTF-8 encoding on Windows to prevent UnicodeEncodeError with emojis/special characters
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -61,21 +66,38 @@ conversation_service = ConversationService(repository=conversation_repository)
 document_repository = DocumentRepository(db_path=settings.DATABASE_PATH)
 embedding_service = EmbeddingService()
 vector_store_service = VectorStoreService(chroma_dir=settings.CHROMA_DIR)
+bm25_store_service = BM25StoreService(persistence_dir=settings.BM25_DIR)
+
 vector_retriever = VectorRetriever(
     embedding_service=embedding_service,
     vector_store_service=vector_store_service,
 )
+bm25_retriever = BM25Retriever(bm25_store=bm25_store_service)
+
+active_retriever = RetrieverFactory.create_retriever(
+    mode=settings.RETRIEVAL_MODE,
+    vector_retriever=vector_retriever,
+    bm25_retriever=bm25_retriever,
+    vector_weight=settings.HYBRID_VECTOR_WEIGHT,
+    bm25_weight=settings.HYBRID_BM25_WEIGHT,
+    vector_candidate_k=settings.HYBRID_VECTOR_CANDIDATE_K,
+    bm25_candidate_k=settings.HYBRID_BM25_CANDIDATE_K,
+    final_top_k=settings.HYBRID_FINAL_TOP_K,
+)
+
 document_service = DocumentService(
     repository=document_repository,
     vector_store=vector_store_service,
     embedding_service=embedding_service,
+    bm25_store=bm25_store_service,
     uploads_dir=settings.UPLOADS_DIR,
     chunk_size=settings.DEFAULT_CHUNK_SIZE,
     chunk_overlap=settings.DEFAULT_CHUNK_OVERLAP,
 )
 rag_service = RagService(
-    retriever=vector_retriever,
+    retriever=active_retriever,
     debug_mode=settings.RAG_DEBUG,
+    relevance_threshold=settings.RAG_RELEVANCE_THRESHOLD,
 )
 
 # Inject services into routers
@@ -86,7 +108,10 @@ set_chat_services(
     llm_service=llm_service,
     conversation_service=conversation_service,
     rag_service=rag_service,
+    vector_retriever=vector_retriever,
+    bm25_retriever=bm25_retriever,
 )
+
 
 # Register routers
 app.include_router(document_router)

@@ -16,4 +16,13 @@ class Settings(BaseSettings):
     DEFAULT_CHUNK_SIZE: int = 600
     DEFAULT_CHUNK_OVERLAP: int = 120
     MAX_FILE_SIZE_MB: int = 50
-    RAG_DEBUG: bool = False
+    RAG_DEBUG: bool = False
+    BM25_DIR: str = str(BASE_DIR / "bm25_index")
+    RETRIEVAL_MODE: str = "hybrid"
+    HYBRID_VECTOR_WEIGHT: float = 0.60
+    HYBRID_BM25_WEIGHT: float = 0.40
+    HYBRID_VECTOR_CANDIDATE_K: int = 10
+    HYBRID_BM25_CANDIDATE_K: int = 10
+    HYBRID_FINAL_TOP_K: int = 5
+    RAG_RELEVANCE_THRESHOLD: float = 0.0
+

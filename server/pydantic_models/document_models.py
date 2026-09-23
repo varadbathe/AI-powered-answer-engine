@@ -49,6 +49,13 @@ class ChunkMetadata(BaseModel):
 
 class RetrievedChunk(ChunkMetadata):
     relevance_score: float = 0.0
+    vector_score: float | None = None
+    bm25_score: float | None = None
+    normalized_vector_score: float | None = None
+    normalized_bm25_score: float | None = None
+    hybrid_score: float | None = None
+    vector_retrieved: bool = False
+    bm25_retrieved: bool = False
 
 
 class CitationItem(BaseModel):
@@ -60,8 +67,12 @@ class CitationItem(BaseModel):
 
 
 class RagDebugInfo(BaseModel):
+    retrieval_mode: str = "hybrid"
+    query: str | None = None
+    candidates: list[dict[str, Any]] | None = None
     retrieved_chunks: list[dict[str, Any]]
     retrieval_scores: list[float]
     document_ids: list[str]
     page_numbers: list[int | None]
     final_context_prompt: str
+

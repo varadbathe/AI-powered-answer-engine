@@ -4,6 +4,7 @@ from typing import Any, List, Optional
 from config import Settings
 from pydantic_models.document_models import DocumentDetail, DocumentStatus, DocumentSummary
 from repositories.document_repository import DocumentRepository
+from services.bm25_store_service import BM25StoreService
 from services.document_chunker import DocumentChunker
 from services.document_parser import DocumentParser, DocumentParserError, EmptyDocumentError
 from services.document_security import (
@@ -25,7 +26,7 @@ class DuplicateDocumentError(Exception):
 class DocumentService:
     """
     Coordinates document ingestion pipeline, duplicate detection, metadata tracking,
-    re-indexing, and deletion.
+    re-indexing, and deletion across ChromaDB and BM25 store.
     """
 
     def __init__(
@@ -33,6 +34,7 @@ class DocumentService:
         repository: DocumentRepository,
         vector_store: VectorStoreService,
         embedding_service: EmbeddingService,
+        bm25_store: Optional[BM25StoreService] = None,
         uploads_dir: Optional[str] = None,
         chunk_size: Optional[int] = None,
         chunk_overlap: Optional[int] = None,
@@ -40,7 +42,9 @@ class DocumentService:
         self.repository = repository
         self.vector_store = vector_store
         self.embedding_service = embedding_service
+        self.bm25_store = bm25_store
         self.uploads_dir = Path(uploads_dir or settings.UPLOADS_DIR)
+
         self.uploads_dir.mkdir(parents=True, exist_ok=True)
         self.chunk_size = chunk_size or settings.DEFAULT_CHUNK_SIZE
         self.chunk_overlap = chunk_overlap or settings.DEFAULT_CHUNK_OVERLAP
@@ -134,9 +138,11 @@ class DocumentService:
             chunk_texts = [c["text"] for c in chunks]
             embeddings = self.embedding_service.embed_texts(chunk_texts)
 
-            # 9. INDEXING: Store chunks and vectors into ChromaDB
+            # 9. INDEXING: Store chunks and vectors into ChromaDB and BM25Store
             self.repository.update_status(document_id, DocumentStatus.INDEXING.value, 0.9)
             self.vector_store.add_chunks(chunks=chunks, embeddings=embeddings)
+            if self.bm25_store:
+                self.bm25_store.add_chunks(chunks=chunks)
 
             # 10. READY: Ingestion complete
             updated = self.repository.update_metadata(
@@ -148,6 +154,17 @@ class DocumentService:
             return DocumentDetail(**(updated or {}))
 
         except Exception as e:
+            # Clean up ChromaDB and BM25 if added, avoiding leaving inconsistent index
+            try:
+                self.vector_store.delete_document_chunks(document_id)
+            except Exception:
+                pass
+            if self.bm25_store:
+                try:
+                    self.bm25_store.delete_document_chunks(document_id)
+                except Exception:
+                    pass
+
             # Transition to FAILED status
             self.repository.update_status(
                 document_id=document_id,
@@ -160,8 +177,14 @@ class DocumentService:
     def reindex_document(self, document_id: str) -> DocumentDetail:
         """
         Re-indexes an existing document from its stored file on disk:
-        1. Deletes old chunks from ChromaDB.
-        2. Re-parses, re-chunks, re-embeds, and updates ChromaDB and SQLite.
+        Safe flow:
+        existing index
+        -> parse new document
+        -> chunk
+        -> embed
+        -> build/validate new index
+        -> replace old index
+        If reindexing fails, the previous working index is preserved.
         """
         doc = self.repository.get_document_by_id(document_id)
         if not doc:
@@ -178,13 +201,11 @@ class DocumentService:
         filename = doc["filename"]
 
         try:
-            # Delete old chunks from ChromaDB
-            self.vector_store.delete_document_chunks(document_id)
-
-            # Ingestion steps
+            # 1. PROCESSING: Parse and extract text per page/section
             self.repository.update_status(document_id, DocumentStatus.PROCESSING.value, 0.3)
             segments = DocumentParser.parse(file_bytes=file_bytes, file_type=file_type)
 
+            # 2. CHUNKING: Generate and validate new chunks
             self.repository.update_status(document_id, DocumentStatus.CHUNKING.value, 0.5)
             chunks = DocumentChunker.chunk_document(
                 segments=segments,
@@ -197,13 +218,25 @@ class DocumentService:
             if not chunks:
                 raise EmptyDocumentError("No text chunks generated during re-indexing")
 
+            # 3. EMBEDDING: Generate and validate new embeddings
             self.repository.update_status(document_id, DocumentStatus.EMBEDDING.value, 0.7)
             chunk_texts = [c["text"] for c in chunks]
             embeddings = self.embedding_service.embed_texts(chunk_texts)
+            if not embeddings or len(embeddings) != len(chunks):
+                raise ValueError("Failed to generate embeddings for all chunks during re-indexing")
 
+            # 4. INDEXING: Atomically replace old index with new validated index
             self.repository.update_status(document_id, DocumentStatus.INDEXING.value, 0.9)
+
+            # Replace chunks in ChromaDB
+            self.vector_store.delete_document_chunks(document_id)
             self.vector_store.add_chunks(chunks=chunks, embeddings=embeddings)
 
+            # Replace chunks in BM25 store
+            if self.bm25_store:
+                self.bm25_store.reindex_document_chunks(document_id, chunks)
+
+            # 5. READY: Reindexing complete
             updated = self.repository.update_metadata(
                 document_id=document_id,
                 chunk_count=len(chunks),
@@ -213,6 +246,7 @@ class DocumentService:
             return DocumentDetail(**(updated or {}))
 
         except Exception as e:
+            # Previous working index is preserved (not deleted)
             self.repository.update_status(
                 document_id=document_id,
                 status=DocumentStatus.FAILED.value,
@@ -223,7 +257,7 @@ class DocumentService:
 
     def delete_document(self, document_id: str) -> bool:
         """
-        Deletes document from SQLite, ChromaDB, and disk storage.
+        Deletes document from SQLite, ChromaDB, BM25 store, and disk storage.
         """
         doc = self.repository.get_document_by_id(document_id)
         if not doc:
@@ -232,7 +266,11 @@ class DocumentService:
         # 1. Delete chunks from ChromaDB
         self.vector_store.delete_document_chunks(document_id)
 
-        # 2. Delete file from disk
+        # 2. Delete chunks from BM25 store
+        if self.bm25_store:
+            self.bm25_store.delete_document_chunks(document_id)
+
+        # 3. Delete file from disk
         storage_path = doc.get("storage_path")
         if storage_path and os.path.exists(storage_path):
             try:
@@ -240,5 +278,6 @@ class DocumentService:
             except Exception as e:
                 print(f"Warning: Failed to remove file {storage_path}: {e}")
 
-        # 3. Delete record from SQLite
+        # 4. Delete record from SQLite
         return self.repository.delete_document(document_id)
+

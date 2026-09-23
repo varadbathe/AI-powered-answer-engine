@@ -37,4 +37,10 @@ class VectorRetriever(BaseRetriever):
             document_ids=document_ids,
         )
 
-        return [RetrievedChunk(**c) for c in raw_chunks]
+        results = []
+        for c in raw_chunks:
+            chunk = RetrievedChunk(**c)
+            chunk.vector_score = c.get("relevance_score", chunk.relevance_score)
+            chunk.vector_retrieved = True
+            results.append(chunk)
+        return results

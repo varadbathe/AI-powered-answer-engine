@@ -4,4 +4,8 @@ from pydantic import BaseModel
 
 class ChatBody(BaseModel):
     query: str
-    history: list[dict] = []
+    history: list[dict] = []
+    mode: str | None = None
+    document_ids: list[str] | None = None
+    retrieval_mode: str | None = None
+

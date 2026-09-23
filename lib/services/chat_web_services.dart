@@ -136,9 +136,10 @@ class ChatWebService {
     String? conversationId,
     String? mode,
     List<String>? documentIds,
+    String? retrievalMode,
   }) {
     AppLogger.info(
-      'Initiating chat query: "$query" (conv: $conversationId, mode: $mode, docs: ${documentIds?.length ?? 0}, history: ${history?.length ?? 0} turns)',
+      'Initiating chat query: "$query" (conv: $conversationId, mode: $mode, docs: ${documentIds?.length ?? 0}, history: ${history?.length ?? 0} turns, retrievalMode: $retrievalMode)',
       tag: 'ChatWebService',
     );
 
@@ -161,7 +162,9 @@ class ChatWebService {
         if (conversationId != null && conversationId.isNotEmpty) 'conversation_id': conversationId,
         if (mode != null && mode.isNotEmpty) 'mode': mode,
         if (documentIds != null && documentIds.isNotEmpty) 'document_ids': documentIds,
+        if (retrievalMode != null && retrievalMode.isNotEmpty) 'retrieval_mode': retrievalMode,
       };
+
       _socket!.send(json.encode(payload));
       AppLogger.info(
         'Query sent to backend successfully.',

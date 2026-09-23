@@ -442,7 +442,3 @@ For AI chatbots and developers implementing extensions:
    - Currently, conversation turns are retained in Flutter memory across `ChatTurn` items. SQLite, Hive, or a backend database (e.g. Supabase, PostgreSQL) can be integrated to persist threads across application sessions.
 
 ---
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).

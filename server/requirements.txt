@@ -8,3 +8,7 @@ sentence-transformers
 tavily-python
 trafilatura
 google-genai
+chromadb
+pypdf
+python-docx
+python-multipart

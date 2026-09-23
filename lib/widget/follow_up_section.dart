@@ -1,4 +1,4 @@
-import 'package:ai_answer_engine/theme/colors.dart';
+import 'package:research_os/theme/colors.dart';
 import 'package:flutter/material.dart';
 
 class FollowUpSection extends StatefulWidget {

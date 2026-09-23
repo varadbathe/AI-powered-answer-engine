@@ -3,6 +3,8 @@
   "venv": "venv",
   "extraPaths": [
     "server",
-    "server/venv/Lib/site-packages"
+    "server/venv/Lib/site-packages",
+    "C:/Users/DELL/AppData/Roaming/Python/Python314/site-packages",
+    "C:/Python314/Lib/site-packages"
   ]
 }

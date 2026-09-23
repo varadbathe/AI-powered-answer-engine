@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'package:ai_answer_engine/services/chat_web_services.dart';
-import 'package:ai_answer_engine/theme/colors.dart';
-import 'package:ai_answer_engine/utils/app_logger.dart';
-import 'package:ai_answer_engine/widget/answer_section.dart';
-import 'package:ai_answer_engine/widget/follow_up_section.dart';
-import 'package:ai_answer_engine/widget/side_bar.dart';
-import 'package:ai_answer_engine/widget/sources_section.dart';
+import 'package:research_os/services/chat_web_services.dart';
+import 'package:research_os/theme/colors.dart';
+import 'package:research_os/utils/app_logger.dart';
+import 'package:research_os/widget/answer_section.dart';
+import 'package:research_os/widget/follow_up_section.dart';
+import 'package:research_os/widget/side_bar.dart';
+import 'package:research_os/widget/sources_section.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -31,12 +31,20 @@ class ChatTurn {
 }
 
 class ChatPage extends StatefulWidget {
-  final String question;
+  final String? question;
+  final String? conversationId;
+  final List<ChatTurn>? initialTurns;
+  final String? mode;
+  final List<String>? documentIds;
 
   const ChatPage({
     super.key,
-    required this.question,
-  });
+    this.question,
+    this.conversationId,
+    this.initialTurns,
+    this.mode,
+    this.documentIds,
+  }) : assert(question != null || initialTurns != null, 'Either question or initialTurns must be provided');
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -45,17 +53,56 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final List<ChatTurn> _turns = [];
   final ScrollController _scrollController = ScrollController();
+  String? _conversationId;
+  String? _mode;
+  List<String>? _documentIds;
   StreamSubscription? _searchSubscription;
   StreamSubscription? _contentSubscription;
   StreamSubscription? _followUpSubscription;
+  StreamSubscription? _conversationIdSubscription;
+  StreamSubscription? _errorSubscription;
 
   @override
   void initState() {
     super.initState();
-    AppLogger.info('Initializing ChatPage for query: "${widget.question}"', tag: 'UI');
+    _conversationId = widget.conversationId;
+    _mode = widget.mode;
+    _documentIds = widget.documentIds;
 
-    // Turn 1 initial state
-    _turns.add(ChatTurn(question: widget.question));
+    if (widget.initialTurns != null && widget.initialTurns!.isNotEmpty) {
+      _turns.addAll(widget.initialTurns!);
+      AppLogger.info(
+        'Restored ${_turns.length} turns for conversation: $_conversationId',
+        tag: 'UI',
+      );
+    } else if (widget.question != null && widget.question!.isNotEmpty) {
+      AppLogger.info('Initializing ChatPage for query: "${widget.question}"', tag: 'UI');
+      _turns.add(ChatTurn(question: widget.question!));
+    }
+
+    _conversationIdSubscription =
+        ChatWebService().conversationIdStream.listen((id) {
+      if (mounted && id.isNotEmpty) {
+        setState(() {
+          _conversationId = id;
+        });
+      }
+    });
+
+    // Populate cached search results if received before subscription
+    if (ChatWebService().lastSearchResults != null && _turns.isNotEmpty) {
+      final activeTurn = _turns.last;
+      activeTurn.sources = ChatWebService().lastSearchResults!['data'] ?? [];
+      activeTurn.isLoadingSources = false;
+    }
+
+    // Populate cached answer if tokens were received before subscription
+    if (ChatWebService().accumulatedAnswer.isNotEmpty && _turns.isNotEmpty) {
+      final activeTurn = _turns.last;
+      activeTurn.answer = ChatWebService().accumulatedAnswer;
+      activeTurn.isLoadingAnswer = false;
+      activeTurn.isStreaming = ChatWebService().isStreamingAnswer;
+    }
 
     // Listen to search results stream
     _searchSubscription = ChatWebService().searchResultStream.listen(
@@ -114,6 +161,22 @@ class _ChatPageState extends State<ChatPage> {
         AppLogger.error('Follow-up stream error in ChatPage: $error', tag: 'UI');
       },
     );
+
+    // Listen to error stream
+    _errorSubscription = ChatWebService().errorStream.listen(
+      (errorMessage) {
+        if (!mounted || _turns.isEmpty) return;
+        setState(() {
+          final activeTurn = _turns.last;
+          activeTurn.isLoadingAnswer = false;
+          activeTurn.isLoadingSources = false;
+          activeTurn.isStreaming = false;
+          if (activeTurn.answer.isEmpty) {
+            activeTurn.answer = '⚠️ $errorMessage';
+          }
+        });
+      },
+    );
   }
 
   @override
@@ -121,6 +184,8 @@ class _ChatPageState extends State<ChatPage> {
     _searchSubscription?.cancel();
     _contentSubscription?.cancel();
     _followUpSubscription?.cancel();
+    _conversationIdSubscription?.cancel();
+    _errorSubscription?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -159,7 +224,13 @@ class _ChatPageState extends State<ChatPage> {
       _turns.add(ChatTurn(question: query));
     });
 
-    ChatWebService().chat(query, history: history);
+    ChatWebService().chat(
+      query,
+      history: history,
+      conversationId: _conversationId,
+      mode: _mode,
+      documentIds: _documentIds,
+    );
     _scrollToBottom();
   }
 
@@ -242,18 +313,19 @@ class _ChatPageState extends State<ChatPage> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Container(
-                                  width: 6,
-                                  height: 6,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.submitButton,
-                                    shape: BoxShape.circle,
-                                  ),
+                                Icon(
+                                  _mode == 'rag' ? Icons.description_outlined : Icons.auto_awesome,
+                                  size: 13,
+                                  color: AppColors.submitButton,
                                 ),
-                                const SizedBox(width: 6),
-                                const Text(
-                                  'AI Answer Engine',
-                                  style: TextStyle(
+                                const SizedBox(width: 5),
+                                Text(
+                                  _mode == 'rag'
+                                      ? (_documentIds != null && _documentIds!.isNotEmpty
+                                          ? 'Document RAG (${_documentIds!.length} docs)'
+                                          : 'Document RAG')
+                                      : 'ResearchOS',
+                                  style: const TextStyle(
                                     fontSize: 11,
                                     color: AppColors.submitButton,
                                     fontWeight: FontWeight.w600,

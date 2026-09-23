@@ -309,7 +309,3 @@ Emitted after answer completion with three logical next steps:
 - **Context Preservation**: Follow-up questions leverage conversation history to resolve contextual pronouns (e.g., *"How old is he?"* &rarr; *"How old is Sundar Pichai?"*), ensuring web search engines retrieve pertinent documents.
 
 ---
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
